@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-mode="portrait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <title>Cosmic X</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="sprinkles"></canvas>
+
+    <!-- Portrait: the Cosmic X UI -->
+    <main id="portrait">
+      <header id="topbar">
+        <h1 id="title">Menu</h1>
+        <button id="titleBtn" aria-label="Switch screen"></button>
+        <nav id="switcher" hidden></nav>
+      </header>
+      <section id="stage"></section>
+      <footer id="dock">
+        <button id="btnClose" class="round dark" aria-label="Close"></button>
+        <button id="btnEdit" class="pill">Edit</button>
+        <button id="btnAdd" class="round light" aria-label="Import songs"></button>
+      </footer>
+    </main>
+
+    <!-- Landscape: iOS 4 style Cover Flow -->
+    <section id="coverflow" aria-label="Cover Flow"></section>
+  </div>
+
+  <input id="filePicker" type="file" multiple hidden
+         accept="audio/*,.mp3,.m4a,.aac,.flac,.ogg,.oga,.opus,.wav,.weba">
+  <div id="toast" role="status"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

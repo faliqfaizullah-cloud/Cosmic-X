@@ -1,0 +1,13 @@
+{
+  "appId": "com.cosmicx.player",
+  "appName": "Cosmic X",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#000000",
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
