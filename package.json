@@ -1,6 +1,6 @@
 {
   "name": "cosmic-x",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Cosmic X - a glassy music player with Cover Flow",
@@ -9,11 +9,13 @@
     "android:assets": "node scripts/apply-android-assets.mjs",
     "sync": "cap sync android",
     "apk:debug": "cd android && ./gradlew assembleDebug",
-    "test": "node test/tags.test.mjs && node test/scroller.test.mjs"
+    "test": "node test/tags.test.mjs && node test/scroller.test.mjs && node test/astro.test.mjs && node test/logic.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
-    "@capacitor/core": "^7.0.0"
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/local-notifications": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.0.0"

@@ -11,13 +11,26 @@ import * as libraryView from './views/library.js';
 import * as queueView from './views/queue.js';
 import * as searchView from './views/search.js';
 import * as settingsView from './views/settings.js';
+import * as moonView from './views/moon.js';
+import * as analyticsView from './views/analytics.js';
+import * as alarmView from './views/alarm.js';
+import * as metricsView from './views/metrics.js';
+import * as dataView from './views/data.js';
+import { alarms, pad } from './alarms.js';
+import { haptic } from './haptics.js';
+import { stats } from './stats.js';
 
 const VIEWS = {
   menu: { title: 'Menu', icon: 'grid', mod: menuView },
+  moon: { title: 'Moon', icon: 'moon', mod: moonView },
+  analytics: { title: 'Analytics', icon: 'sun', mod: analyticsView },
+  alarm: { title: 'Alarm', icon: 'bell', mod: alarmView },
+  metrics: { title: 'Metrics', icon: 'gauge', mod: metricsView },
+  data: { title: 'Data', icon: 'layers', mod: dataView },
   player: { title: 'Now Playing', icon: 'play', mod: playerView },
   library: { title: 'Library', icon: 'note', mod: libraryView },
   queue: { title: 'Queue', icon: 'list', mod: queueView },
-  search: { title: 'Search', icon: 'search', mod: searchView },
+  search: { title: 'Ask', icon: 'wand', mod: searchView },
   settings: { title: 'Settings', icon: 'sliders', mod: settingsView },
 };
 
@@ -31,6 +44,7 @@ const picker = $('#filePicker');
 let current = null;
 let currentId = null;
 let editFn = null;
+let addFn = null;
 let importing = false;
 
 // ---------------------------------------------------------------- app facade passed to views
@@ -42,6 +56,11 @@ const app = {
   go,
   pickFiles: () => picker.click(),
   setTitle: (t) => { titleEl.textContent = t; },
+  /** Re-purpose the round "+" dock button for the current screen (default: import songs). */
+  setAdd(fn, iconName = 'plus') {
+    addFn = fn || null;
+    btnAdd.innerHTML = icon(iconName, 22);
+  },
   setEdit(label, fn, hidden = false) {
     editFn = fn || null;
     btnEdit.style.visibility = !label || hidden ? 'hidden' : 'visible';
@@ -62,9 +81,13 @@ function go(id, params = {}, { push = true } = {}) {
   currentId = id;
   app.setTitle(params.title || VIEWS[id].title);
   app.setEdit(null);
+  app.setAdd(null);
   current = VIEWS[id].mod.mount(el, app, params) || {};
   $$('#switcher button').forEach((b) => b.classList.toggle('on', b.dataset.v === id));
-  if (push) history.pushState({ v: id, p: params }, '');
+  if (push) {
+    const keep = Object.fromEntries(Object.entries(params).filter(([k]) => !k.startsWith('_'))); // `_x` params are one-shot
+    history.pushState({ v: id, p: keep }, '');
+  }
 }
 
 addEventListener('popstate', (e) => {
@@ -89,11 +112,11 @@ function buildChrome() {
   document.addEventListener('click', (e) => { if (!switcher.hidden && !e.target.closest('#switcher')) closeSwitcher(); });
 
   $('#btnClose').addEventListener('click', () => {
-    if (currentId === 'menu') go(library.songs.length ? 'player' : 'menu');
+    if (currentId === 'menu') go('moon');
     else go('menu');
   });
   btnEdit.addEventListener('click', () => editFn?.());
-  btnAdd.addEventListener('click', () => picker.click());
+  btnAdd.addEventListener('click', () => (addFn ? addFn() : picker.click()));
 }
 const closeSwitcher = () => { switcher.hidden = true; };
 
@@ -114,6 +137,7 @@ async function importFiles(files) {
     if (r.skipped) parts.push(`${r.skipped} already in library`);
     if (r.failed) parts.push(`${r.failed} unsupported`);
     toast(parts.join(' · ') || 'Nothing imported', 3800);
+    haptic.notify(r.added ? 'success' : r.failed ? 'error' : 'warning');
   } catch (e) {
     console.error(e);
     toast('Import failed');
@@ -161,6 +185,36 @@ settings.on((k) => {
   if (k === 'reflection') document.documentElement.classList.toggle('no-reflect', !settings.get('reflection'));
 });
 
+// ---------------------------------------------------------------- global haptics
+function wireGlobalHaptics() {
+  const PRIMARY = '.orb.center, .big, .round.light, .cta, .chip, .srch-play, .sheet-btn, .sw, .pill';
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target.closest('button, .tile, .orb, .qcard, .srow, .al-row');
+    if (!t || t.closest('.cf-stage')) return; // Cover Flow has its own detents
+    if (t.matches('.orb:not(.center)')) return; // orbs buzz on open instead
+    t.matches(PRIMARY) ? haptic.press() : haptic.tap();
+  }, { passive: true });
+}
+
+// ---------------------------------------------------------------- alarm ringer overlay
+function buildRinger() {
+  const root = $('#ring');
+  listen(alarms, 'ring', (e) => {
+    const a = e.detail;
+    root.innerHTML = `<div class="ring-card">
+      <div class="ring-pulse">${icon('bell', 40)}</div>
+      <div class="ring-time">${a.time || `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`}</div>
+      <div class="ring-label">${(a.label || 'Alarm').replace(/</g, '&lt;')}</div>
+      <div class="ring-row"><button class="ring-btn" data-snooze>Snooze 9 min</button><button class="ring-btn stop" data-stop>Stop</button></div></div>`;
+    root.hidden = false;
+  });
+  listen(alarms, 'stop', () => { root.hidden = true; root.innerHTML = ''; });
+  root.addEventListener('click', (e) => {
+    if (e.target.closest('[data-stop]')) { haptic.press(); alarms.stop(); }
+    else if (e.target.closest('[data-snooze]')) { haptic.press(); alarms.snooze(9); }
+  });
+}
+
 // ---------------------------------------------------------------- boot
 async function boot() {
   try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
@@ -187,14 +241,17 @@ async function boot() {
       const s = library.byId.get(localStorage.getItem('cx.last')) || library.songs[0];
       player.playList(library.songs, s.id, { play: false });
     }
-    btnAdd.classList.toggle('lime', !library.songs.length);
   });
-  btnAdd.classList.toggle('lime', !library.songs.length);
 
   listen(player, 'error', (e) => toast(`Can't play “${e.detail.song.title}”`));
 
+  alarms.start();
+  stats.start(player);
+  buildRinger();
+  wireGlobalHaptics();
+
   applyMode();
-  const start = library.songs.length ? 'player' : 'menu';
+  const start = 'moon'; // the original design opens on the Moon screen
   history.replaceState({ v: start, p: {} }, '');
   go(start, {}, { push: false });
 }

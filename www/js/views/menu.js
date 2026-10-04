@@ -1,17 +1,19 @@
 import { icon } from '../icons.js';
 import { listen, esc } from '../util.js';
+import { alarms } from '../alarms.js';
+import { haptic } from '../haptics.js';
 
 const R = 37; // orbit radius, % of the cluster box
 
 const ORBS = [
-  { id: 'library',  label: 'Library',   icon: 'grid',    c: ['#7d7d85', '#f2f2f7'], a: 0 },
-  { id: 'albums',   label: 'Albums',    icon: 'disc',    c: ['#08873a', '#a8ff74'], a: 45 },
-  { id: 'favorites',label: 'Favorites', icon: 'heart',   c: ['#b86a00', '#ffe08a'], a: 90 },
-  { id: 'shuffle',  label: 'Shuffle',   icon: 'shuffle', c: ['#9c1020', '#ff6a5a'], a: 135 },
-  { id: 'import',   label: 'Import',    icon: 'upload',  c: ['#3b1d9c', '#c4a6ff'], a: 180 },
-  { id: 'queue',    label: 'Queue',     icon: 'list',    c: ['#0b0b10', '#50505e'], a: 225 },
-  { id: 'search',   label: 'Search',    icon: 'search',  c: ['#0a3fc0', '#74b4ff'], a: 270 },
-  { id: 'settings', label: 'Settings',  icon: 'sliders', c: ['#26344c', '#b2c1de'], a: 315 },
+  { id: 'moon',      label: 'Moon',      icon: 'moon',    c: ['#7d7d85', '#f2f2f7'], a: 0 },
+  { id: 'analytics', label: 'Analytics', icon: 'sun',     c: ['#9c1020', '#ff6a5a'], a: 45 },
+  { id: 'alarm',     label: 'Alarm',     icon: 'bell',    c: ['#a8ff74', '#d7ff2f'], a: 90, dark: true },
+  { id: 'library',   label: 'Music',     icon: 'note',    c: ['#3b1d9c', '#c4a6ff'], a: 135 },
+  { id: 'data',      label: 'Data',      icon: 'layers',  c: ['#b86a00', '#ffe08a'], a: 180 },
+  { id: 'metrics',   label: 'Metrics',   icon: 'gauge',   c: ['#0a3fc0', '#74b4ff'], a: 225 },
+  { id: 'search',    label: 'Ask',       icon: 'wand',    c: ['#0b0b10', '#50505e'], a: 270 },
+  { id: 'settings',  label: 'Settings',  icon: 'sliders', c: ['#26344c', '#b2c1de'], a: 315 },
 ];
 
 const pt = (a, r = R) => [50 + r * Math.sin((a * Math.PI) / 180), 50 - r * Math.cos((a * Math.PI) / 180)];
@@ -23,8 +25,8 @@ export function mount(el, app) {
   const lines = ORBS.map((o) => { const [x, y] = pt(o.a); return `<line x1="50" y1="50" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"/>`; }).join('');
   const orbs = ORBS.map((o, i) => {
     const [x, y] = pt(o.a);
-    const badge = o.id === 'library' ? '<span class="badge" data-badge hidden></span>' : o.id === 'favorites' ? '<span class="badge" data-fbadge hidden></span>' : '';
-    return `<button class="orb" data-id="${o.id}" style="left:${x}%;top:${y}%;--c1:${o.c[0]};--c2:${o.c[1]};--d:${0.06 + i * 0.05}s" aria-label="${o.label}">
+    const badge = o.id === 'library' ? '<span class="badge" data-badge hidden></span>' : o.id === 'alarm' ? '<span class="badge" data-abadge hidden></span>' : '';
+    return `<button class="orb ${o.dark ? 'dark-ic' : ''}" data-id="${o.id}" style="left:${x}%;top:${y}%;--c1:${o.c[0]};--c2:${o.c[1]};--d:${0.06 + i * 0.05}s" aria-label="${o.label}">
       <span class="orb-body">${icon(o.icon, 24)}</span>${badge}<em class="orb-label">${o.label}</em></button>`;
   }).join('');
 
@@ -45,46 +47,29 @@ export function mount(el, app) {
 
   function refresh() {
     const n = library.songs.length;
-    const favs = library.songs.filter((s) => s.fav).length;
     const b = $c('[data-badge]');
     b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
-    const fb = $c('[data-fbadge]');
-    fb.hidden = !favs; fb.textContent = favs;
+    const active = alarms.list.filter((a) => a.enabled).length;
+    const ab = $c('[data-abadge]');
+    ab.hidden = !active; ab.textContent = active;
     const cur = player.current;
     const center = $c('[data-center]');
     const url = library.coverURL(cur);
     center.style.backgroundImage = url ? `url("${url}")` : '';
     center.classList.toggle('has-art', !!url);
     center.innerHTML = url ? '' : icon(player.playing ? 'pause' : 'play', 34);
-    $c('[data-hint]').innerHTML = n
-      ? cur ? `<b>${esc(cur.title)}</b> · ${esc(cur.artist)}` : 'Your library is ready'
-      : 'Tap <b>Import</b> to add songs from your phone';
-    $c('.menu').classList.toggle('empty', !n);
+    $c('[data-hint]').innerHTML = cur ? `<b>${esc(cur.title)}</b> · ${esc(cur.artist)}` : 'Tap an orb to open a screen';
   }
 
-  offs.push(listen(library, 'change', refresh), listen(library, 'fav', refresh), listen(player, 'track', refresh), listen(player, 'state', refresh));
+  offs.push(listen(library, 'change', refresh), listen(player, 'track', refresh), listen(player, 'state', refresh), listen(alarms, 'change', refresh));
   refresh();
 
   el.addEventListener('click', (e) => {
     const b = e.target.closest('.orb');
     if (!b) return;
-    switch (b.dataset.id) {
-      case 'player': return go('player');
-      case 'library': return go('library', { mode: 'songs' });
-      case 'albums': return go('library', { mode: 'albums' });
-      case 'favorites': return go('library', { mode: 'favorites' });
-      case 'queue': return go('queue');
-      case 'search': return go('search');
-      case 'settings': return go('settings');
-      case 'import': return app.pickFiles();
-      case 'shuffle': {
-        if (!library.songs.length) return app.toast('Import some songs first');
-        player.setShuffle(true);
-        const s = library.songs[Math.floor(Math.random() * library.songs.length)];
-        player.playList(library.songs, s.id);
-        return go('player');
-      }
-    }
+    haptic.thud();
+    const id = b.dataset.id;
+    go(id);
   });
 
   app.setEdit('Settings', () => go('settings'));

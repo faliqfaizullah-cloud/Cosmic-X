@@ -7,6 +7,11 @@ const defaults = {
   sort: 'artist', // artist | title | recent
   shuffle: false,
   repeat: 'off', // off | all | one
+  haptics: true,
+  hapticStrength: 'normal', // soft | normal | strong
+  lat: null,
+  lon: null,
+  place: '',
 };
 const data = { ...defaults };
 try {

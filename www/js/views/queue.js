@@ -1,6 +1,7 @@
 import { icon } from '../icons.js';
 import { esc, fmtTime, listen, clamp, paletteFor } from '../util.js';
 import { Scroller, bindDrag } from '../scroller.js';
+import { haptic } from '../haptics.js';
 
 const STEP = 66; // px between stacked cards
 
@@ -9,6 +10,7 @@ export function mount(el, app) {
   const offs = [];
   let items = [];
   let nodes = [];
+  let lastIdx = 0;
 
   el.innerHTML = `<div class="deck-wrap">
     <div class="deck" data-deck></div>
@@ -52,6 +54,8 @@ export function mount(el, app) {
   }
 
   function layout(f) {
+    const idx = Math.round(f);
+    if (idx !== lastIdx) { lastIdx = idx; if (sc.dragging || Math.abs(sc.vel) > 0.002) haptic.tick(); }
     for (let i = 0; i < nodes.length; i++) {
       const d = i - f;
       const ad = Math.abs(d);
@@ -78,6 +82,7 @@ export function mount(el, app) {
       const i = +n.dataset.i;
       if (i !== Math.round(sc.pos)) return sc.to(i);
       const it = items[i];
+      haptic.press();
       if (i === 0) player.toggle();
       else player.jumpTo(it.orderPos);
     },
@@ -87,8 +92,7 @@ export function mount(el, app) {
     unbind,
     () => sc.stop(),
     listen(player, 'queue', build),
-    listen(player, 'track', build),
-    listen(library, 'fav', () => {})
+    listen(player, 'track', build)
   );
 
   build();

@@ -26,3 +26,24 @@ if (existsSync(gradle) && (APP_VERSION || APP_VERSION_CODE)) {
   writeFileSync(gradle, g);
   console.log(`✓ version ${APP_VERSION} (${APP_VERSION_CODE})`);
 }
+
+// Permissions: haptics (vibrate), alarm notifications, weather (internet) and location for the Moon altitude.
+const manifest = 'android/app/src/main/AndroidManifest.xml';
+if (existsSync(manifest)) {
+  let m = readFileSync(manifest, 'utf8');
+  const perms = [
+    'android.permission.INTERNET',
+    'android.permission.VIBRATE',
+    'android.permission.POST_NOTIFICATIONS',
+    'android.permission.SCHEDULE_EXACT_ALARM',
+    'android.permission.RECEIVE_BOOT_COMPLETED',
+    'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.ACCESS_FINE_LOCATION',
+  ];
+  const add = perms.filter((p) => !m.includes(`"${p}"`)).map((p) => `    <uses-permission android:name="${p}" />`).join('\n');
+  if (add) {
+    m = m.replace('</manifest>', `${add}\n</manifest>`);
+    writeFileSync(manifest, m);
+    console.log('✓ manifest permissions');
+  }
+}

@@ -1,6 +1,7 @@
 import { icon } from './icons.js';
 import { esc, fmtTime, clamp, paletteFor, listen } from './util.js';
 import { Scroller, bindDrag } from './scroller.js';
+import { haptic } from './haptics.js';
 
 // Cover Flow geometry (relative to cover size)
 const ANGLE = 62; // degrees side covers are turned
@@ -187,6 +188,7 @@ export class CoverFlow {
 
     const f = clamp(Math.round(pos), 0, n - 1);
     if (f !== this.focus) {
+      if (this.focus >= 0 && (this.sc.dragging || Math.abs(this.sc.vel) > 0.002)) haptic.tick();
       this.nodes.get(this.focus)?.classList.remove('on');
       this.focus = f;
       this.#renderInfo();

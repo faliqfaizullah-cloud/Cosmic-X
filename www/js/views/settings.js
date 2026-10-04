@@ -1,6 +1,8 @@
 import { icon } from '../icons.js';
 import { settings } from '../settings.js';
 import { fmtBytes, fmtTime, listen, confirmSheet } from '../util.js';
+import { haptic } from '../haptics.js';
+import { locate, getCoords } from '../weather.js';
 
 export function mount(el, app) {
   const { library } = app;
@@ -14,6 +16,16 @@ export function mount(el, app) {
   function render() {
     const n = library.songs.length;
     el.innerHTML = `<div class="set-scroll"><div class="set">
+      <div class="set-card">
+        <div class="set-h">Haptics</div>
+        ${toggle('haptics', 'Haptic feedback', 'Taps, detents in Cover Flow and dials, alarm pulses')}
+        ${seg('hapticStrength', 'Strength', [['soft', 'Soft'], ['normal', 'Normal'], ['strong', 'Strong']])}
+      </div>
+      <div class="set-card">
+        <div class="set-h">Location</div>
+        <div class="row"><div><b>${getCoords().place}</b><span>Used for the Moon altitude and weather</span></div>
+          <button class="chip" data-locate>Use mine</button></div>
+      </div>
       <div class="set-card">
         <div class="set-h">Landscape · Cover Flow</div>
         ${toggle('sprinkles', 'Sprinkles', 'Falling sprinkles behind the covers')}
@@ -30,20 +42,22 @@ export function mount(el, app) {
         <div class="row"><div><b>Clear library</b><span>Removes Cosmic X's copies of your songs</span></div>
           <button class="chip danger" data-clear ${n ? '' : 'disabled'}>Clear</button></div>
       </div>
-      <p class="set-foot">Cosmic X 1.0 · Rotate your phone to landscape for Cover Flow</p>
+      <p class="set-foot">Cosmic X 1.1 · Rotate your phone to landscape for Cover Flow</p>
     </div></div>`;
   }
 
   el.addEventListener('click', async (e) => {
     const sw = e.target.closest('[data-sw]');
-    if (sw) { settings.set(sw.dataset.sw, !settings.get(sw.dataset.sw)); render(); return; }
+    if (sw) { settings.set(sw.dataset.sw, !settings.get(sw.dataset.sw)); haptic.press(); render(); return; }
     const sg = e.target.closest('[data-seg]');
     if (sg) {
       settings.set(sg.dataset.seg, sg.dataset.v);
+      haptic.press(); // lets you feel the new strength immediately
       if (sg.dataset.seg === 'sort') { library.resort(); library.emit('change'); }
       render();
       return;
     }
+    if (e.target.closest('[data-locate]')) { app.toast('Finding your location…'); await locate({ timeout: 8000 }); haptic.notify('success'); render(); return; }
     if (e.target.closest('[data-import]')) return app.pickFiles();
     if (e.target.closest('[data-clear]')) {
       if (await confirmSheet({ title: 'Clear library?', message: 'All imported songs will be removed from Cosmic X. Your original files are not touched.', confirm: 'Clear' })) {

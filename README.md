@@ -1,7 +1,15 @@
-# Cosmic X
+# Cosmic X  (v1.1)
 
 A glassy music player for Android, based on the Cosmic X concept UI: dotted-grid black canvas, radial glass-orb menu, big gradient cards, 3D stacked cards, and a blurred-gradient prompt screen.
 
+- **Original Cosmic X screens (v1.1):**
+  - **Moon** — the opening screen. Real phase, illumination, distance, age and altitude, a painted moon, and a dial you drag to travel ±60 days.
+  - **Analytics** — weather widgets (temperature + sun arc, UV, humidity, wind, pressure, luminosity, hourly curve) from Open-Meteo.
+  - **Alarm** — mint card, alarm list, editor, snooze. Rings in-app and via native notifications when the app is closed.
+  - **Metrics** — listening time, battery, library and storage.
+  - **Data** — the stacked 3D cards that jump to every screen.
+  - **Ask** — the blurred-gradient prompt screen. Type *"show me the weather analytics today"*, *"create a new alarm"*, *"set an alarm at 6:30 am"*, *"when is the next full moon"*, or a song name.
+- **Haptics everywhere** — taps, detents while scrolling Cover Flow / decks / the moon dial, success-warning-error buzzes, alarm pulses. Strength and on/off in Settings.
 - **Import your own songs** from phone storage (mp3, m4a/aac, flac, ogg/opus, wav). Title, artist, album and cover art are read from the file tags.
 - **Portrait** — the Cosmic X UI: Menu (orbs) · Now Playing · Library · Queue (stacked cards) · Search · Settings.
 - **Landscape** — rotate the phone for an **iOS 4 style Cover Flow** with glossy reflections and colourful **sprinkles** drifting behind it (they speed up while music plays).
@@ -51,10 +59,15 @@ www/                  the whole app (plain HTML/CSS/ES modules, no bundler)
   js/library.js, db.js, tags.js   import pipeline, IndexedDB, ID3/MP4/FLAC/Ogg tag reader
   js/views/           menu · player · library · queue · search · settings
 resources/android/    launcher icons + colours applied by scripts/apply-android-assets.mjs
-test/                 `npm test` — tag parser + scroller physics
+test/                 `npm test` — tag parser, scroller physics, moon astronomy, alarms, prompt intents
 ```
 
 ## Notes
+
+- Haptics use the native Capacitor Haptics plugin (falls back to `navigator.vibrate` in a browser). Alarms use the Local Notifications plugin. Both are installed by `npm install` and need no extra setup.
+- Weather needs internet (first load); the last result is cached for offline use. The Moon altitude uses your location if you allow it, otherwise Kuala Lumpur.
+- Alarm notifications on Android 13+ ask for notification permission the first time you save an alarm. On some phones, battery-saver can delay exact alarms.
+- Not included from the concept video: wearable-device data (Watch / Ring) and the Membership plans screen.
 
 - Imported songs are **copied into the app's own storage** (IndexedDB), so they keep working if the original file moves. Use Settings → Clear library to free the space.
 - Android can pause a WebView's audio shortly after the screen locks on some phones. A native foreground-service plugin would make background playback bulletproof.
