@@ -1,4 +1,4 @@
-# Cosmic X  (v1.2)
+# Cosmic X  (v1.3)
 
 A frosted-glass **walking tracker** for Android (similar to Strava), plus the original Cosmic X screens.
 
@@ -10,6 +10,11 @@ A frosted-glass **walking tracker** for Android (similar to Strava), plus the or
 - **Smart GPS filtering** — drops weak fixes and GPS jumps, ignores standing-still jitter, excludes pauses from time and distance.
 - **Haptics** — a buzz at every kilometre, plus taps and detents throughout (Settings → Haptics).
 - **Landscape** — rotate for an **iOS 4 Cover Flow of your walks** (frosted route cards, reflections, sprinkles) with Start / Pause / Finish controls.
+
+## Full screen, home-screen widget, bold italic
+- **Full screen** — immersive edge-to-edge: status and navigation bars are hidden (swipe from an edge to peek at them), and the app draws behind the camera cut-out.
+- **Home-screen widget (2×2, 28dp corners)** — long-press the home screen → *Widgets* → **Cosmic X**. Same frosted-glass look as the in-app Walk widget: route outline with the glowing dot, distance, time and pace, plus a REC / PAUSED / READY chip. It shows your live walk while recording and your latest walk otherwise; tap it to open the app. It redraws on every state change and every 5 s while recording.
+- **Bold italic** — all text in the app and the widget is bold italic.
 
 ## Original Cosmic X screens
 Moon (real phase, distance, altitude, time-travel dial) · Analytics (weather widgets) · Alarm · Metrics · Data (stacked cards) · Ask (type "start a walk", "set an alarm at 6:30 am", "show me the weather analytics today"…) · orb Menu.
@@ -29,9 +34,10 @@ GitHub Actions builds the app and attaches `CosmicX-1.2.0-debug.apk` to a Releas
 Concentric blue circles with a white arrow on a light grid. Adaptive icon (with Android 13 themed/monochrome version) plus legacy round/square icons. Regenerate with `python3 scripts/make-icons.py` (needs `pip install pillow`).
 
 ## Tests
-`npm test` runs ~63 checks: tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
+`npm test` runs ~70 checks (incl. the widget data pipeline): tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
 
 ## Notes
+- The widget and full-screen code are native Java in `resources/android/java/`; `scripts/apply-android-assets.mjs` installs them (and registers the widget in the manifest) after `npx cap add android`. The widget preview image is made by `scripts/make-widget-preview.py`.
 - Map tiles come from the public OpenStreetMap server (fine for personal use). For heavy use, switch `TILE_URL` in `www/js/views/map.js` to a tile provider.
 - Heart rate, contact time and vertical oscillation in the reference design come from wearables, so the small widgets show GPS-derived speed and elevation instead; calories and steps are estimates.
 - Weather needs internet. Distances/speeds come from GPS only; accuracy depends on the sky view.

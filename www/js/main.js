@@ -8,6 +8,7 @@ import { haptic } from './haptics.js';
 import { Sprinkles } from './sprinkles.js';
 import { CoverFlow } from './coverflow.js';
 import { fmtPace } from './track-math.js';
+import { startWidgetSync } from './widget.js';
 import * as menuView from './views/menu.js';
 import * as walkView from './views/walk.js';
 import * as mapView from './views/map.js';
@@ -211,6 +212,7 @@ async function boot() {
   buildRinger();
   wireGlobalHaptics();
   wireTracker();
+  startWidgetSync(tracker, activities); // home-screen widget
 
   applyMode();
   history.replaceState({ v: 'walk', p: {} }, '');

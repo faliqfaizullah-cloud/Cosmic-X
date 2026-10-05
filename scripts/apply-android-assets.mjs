@@ -1,6 +1,6 @@
 // Run after `npx cap add android`: applies Cosmic X icons/colours, a black launch screen,
 // and (optionally) version numbers taken from APP_VERSION / APP_VERSION_CODE env vars.
-import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 
 const res = 'android/app/src/main/res';
 if (!existsSync(res)) {
@@ -49,5 +49,35 @@ if (existsSync(manifest)) {
     m = m.replace('</manifest>', `${add}\n</manifest>`);
     writeFileSync(manifest, m);
     console.log('✓ manifest permissions');
+  }
+}
+
+// Native code: full-screen MainActivity, the JS->widget bridge plugin and the 2x2 home-screen widget.
+const appId = JSON.parse(readFileSync('capacitor.config.json', 'utf8')).appId;
+const javaDir = `android/app/src/main/java/${appId.replaceAll('.', '/')}`;
+if (existsSync('android/app/src/main')) {
+  mkdirSync(javaDir, { recursive: true });
+  for (const f of readdirSync('resources/android/java')) {
+    const src = readFileSync(`resources/android/java/${f}`, 'utf8').replaceAll('__APP_ID__', appId);
+    writeFileSync(`${javaDir}/${f}`, src);
+  }
+  console.log('✓ native sources (full screen + widget)');
+}
+
+// register the widget receiver in the manifest
+if (existsSync(manifest)) {
+  let m = readFileSync(manifest, 'utf8');
+  if (!m.includes('WalkWidgetProvider')) {
+    const receiver = `
+        <receiver android:name="${appId}.WalkWidgetProvider" android:exported="false" android:label="Cosmic X Walk">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/walk_widget_info" />
+        </receiver>
+    `;
+    m = m.replace('</application>', `${receiver}</application>`);
+    writeFileSync(manifest, m);
+    console.log('✓ widget receiver registered');
   }
 }

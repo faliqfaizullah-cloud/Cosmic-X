@@ -64,16 +64,16 @@ export function routeCard(act, { size = 360, seed = 0 } = {}) {
 
   // text
   g.fillStyle = 'rgba(255,255,255,0.92)';
-  g.font = `300 ${size * 0.042}px system-ui, sans-serif`;
+  g.font = `italic 700 ${size * 0.042}px system-ui, sans-serif`;
   g.fillText(act?.name ?? 'Your first walk', size * 0.13, size * 0.66);
   g.save(); g.shadowColor = 'rgba(255,255,255,0.55)'; g.shadowBlur = size * 0.03; g.shadowOffsetY = size * 0.012;
-  g.font = `300 ${size * 0.17}px system-ui, sans-serif`;
+  g.font = `italic 700 ${size * 0.17}px system-ui, sans-serif`;
   const d = act ? fmtKm(act.distance) : '0.00';
   g.fillText(d, size * 0.12, size * 0.81);
   const dw = g.measureText(d).width;
   g.restore();
   g.fillStyle = 'rgba(255,255,255,0.7)';
-  g.font = `400 ${size * 0.036}px system-ui, sans-serif`;
+  g.font = `italic 700 ${size * 0.036}px system-ui, sans-serif`;
   g.fillText('KM', size * 0.12 + dw + size * 0.02, size * 0.81);
 
   const url = c.toDataURL('image/jpeg', 0.9);
