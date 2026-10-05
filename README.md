@@ -25,6 +25,9 @@ GitHub Actions builds the app and attaches `CosmicX-1.2.0-debug.apk` to a Releas
 1. Open **Walk**, tap ▶. Allow **location** (choose *Allow all the time* for reliable background tracking) and **notifications**.
 2. If tracking stops after a while, set Cosmic X to **Battery → Unrestricted** in Android settings.
 
+## App icon
+Concentric blue circles with a white arrow on a light grid. Adaptive icon (with Android 13 themed/monochrome version) plus legacy round/square icons. Regenerate with `python3 scripts/make-icons.py` (needs `pip install pillow`).
+
 ## Tests
 `npm test` runs ~63 checks: tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
 
