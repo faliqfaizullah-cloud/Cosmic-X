@@ -39,6 +39,8 @@ t('intents from the original video prompts', () => {
 t('intents: create alarm with a time, moon, fallthrough to music search', () => {
   assert.deepEqual(parseIntent('set an alarm at 6:30 am').create, { time: '06:30' });
   assert.equal(parseIntent('when is the next full moon').view, 'moon');
+  assert.equal(parseIntent('start a walk').view, 'walk'); assert.deepEqual(parseIntent('start a walk').create, { start: true });
+  assert.equal(parseIntent('show my past walks').view, 'activities'); assert.equal(parseIntent('open the map').view, 'map');
   assert.equal(parseIntent('play daft punk'), null); assert.equal(parseIntent('   '), null);
   assert.equal(parseIntent('open my alarm').create, undefined);
 });

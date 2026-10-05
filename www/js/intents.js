@@ -18,18 +18,19 @@ export function parseTime(text) {
 }
 
 const RULES = [
+  { re: /\b(history|past walks|my walks|activities|activity log)\b/, view: 'activities' },
+  { re: /\b(map|route)\b/, view: 'map' },
+  { re: /\b(walk|walking|walks|run|running|jog|track|tracking|strava|steps|hike)\b/, view: 'walk' },
   { re: /\b(alarm|alarms|wake me|clock)\b/, view: 'alarm' },
   { re: /\b(moon|lunar|phase|phases)\b/, view: 'moon' },
   { re: /\b(weather|analytic|analytics|temperature|forecast|uv|humidity|rain|sunrise|sunset)\b/, view: 'analytics' },
   { re: /\b(metric|metrics|battery|stats|statistics|listening time)\b/, view: 'metrics' },
   { re: /\b(setting|settings|haptic|haptics|preferences)\b/, view: 'settings' },
-  { re: /\b(queue|up next)\b/, view: 'queue' },
-  { re: /\b(library|favorites?|albums?|songs)\b/, view: 'library' },
-  { re: /\b(data|overview|dashboard)\b/, view: 'data' },
+    { re: /\b(data|overview|dashboard)\b/, view: 'data' },
 ];
-const TITLES = { alarm: 'Alarm', moon: 'Moon', analytics: 'Weather Analytics', metrics: 'Metrics', settings: 'Settings', queue: 'Queue', library: 'Library', data: 'Data' };
+const TITLES = { alarm: 'Alarm', moon: 'Moon', analytics: 'Weather Analytics', metrics: 'Metrics', settings: 'Settings', data: 'Data', walk: 'Walk', map: 'Map', activities: 'History' };
 
-/** Returns { view, label, create? } or null when the text should just search the music library. */
+/** Returns { view, label, create? } or null when nothing matches. */
 export function parseIntent(raw) {
   const t = String(raw || '').toLowerCase().trim();
   if (!t) return null;
@@ -41,5 +42,6 @@ export function parseIntent(raw) {
     if (wantsNew && time) return { view: 'alarm', label: `Set an alarm for ${time}`, create: { time } };
     if (wantsNew) return { view: 'alarm', label: 'Create a new alarm', create: { time: null } };
   }
+  if (rule.view === 'walk' && /\b(start|begin|record|go for|new)\b/.test(t)) return { view: 'walk', label: 'Start a walk', create: { start: true } };
   return { view: rule.view, label: `Open ${TITLES[rule.view]}` };
 }

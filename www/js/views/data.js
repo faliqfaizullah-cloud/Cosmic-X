@@ -2,7 +2,7 @@ import { icon } from '../icons.js';
 import { moonInfo } from '../astro.js';
 import { cachedWeather } from '../weather.js';
 import { alarms, fmtIn } from '../alarms.js';
-import { stats } from '../stats.js';
+import { fmtKm, fmtDur } from '../track-math.js';
 import { Scroller, bindDrag } from '../scroller.js';
 import { haptic } from '../haptics.js';
 import { esc } from '../util.js';
@@ -11,17 +11,22 @@ const STEP = 66;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export function mount(el, app) {
-  const { library, player, go } = app;
+  const { activities, tracker, go } = app;
 
   const m = moonInfo(new Date());
   const w = cachedWeather()?.data;
   const nx = alarms.next();
+  const snap = tracker.snap;
+  const last = activities.list[0];
+  const walkCard = snap.state !== 'idle'
+    ? { view: 'walk', icon: 'activity', title: 'Walk', big: fmtKm(snap.distance), sub: `${snap.state === 'paused' ? 'Paused' : 'Recording'} · ${fmtDur(snap.elapsed)}`, g: ['#ffd0b5', '#d9684a'], dark: true }
+    : { view: 'walk', icon: 'activity', title: 'Walk', big: last ? fmtKm(last.distance) : '0.00', sub: last ? `last walk · ${last.name}` : 'Start your first walk', g: ['#ffd0b5', '#d9684a'], dark: true };
   const cards = [
+    walkCard,
     { view: 'moon', icon: 'moon', title: 'Moon', big: `${Math.round(m.illumination * 100)}%`, sub: m.phase, g: ['#ff9a5a', '#5a1a14'] },
     { view: 'analytics', icon: 'sun', title: 'Analytics', big: w ? `${Math.round(w.temp)}°` : '—', sub: w ? w.condition : 'Open to load weather', g: ['#ff4d6d', '#6d1030'] },
     { view: 'alarm', icon: 'bell', title: 'Alarm', big: nx ? nx.alarm.time : '--:--', sub: nx ? `in ${fmtIn(nx.at - Date.now())}` : 'No alarm is on', g: ['#d7ff2f', '#169c8a'], dark: true },
-    { view: 'player', icon: 'note', title: 'Music', big: String(library.songs.length), sub: player.current ? player.current.title : 'songs in library', g: ['#b36bff', '#241a7a'] },
-    { view: 'metrics', icon: 'gauge', title: 'Metrics', big: `${Math.floor(stats.todaySec() / 60)}m`, sub: 'listened today', g: ['#5b8cff', '#12d6c0'] },
+    { view: 'activities', icon: 'route', title: 'History', big: String(activities.list.length), sub: `${fmtKm(activities.totalDistance)} km in total`, g: ['#b36bff', '#241a7a'] },
   ];
 
   el.innerHTML = `<div class="deck-wrap"><div class="deck" data-deck>${cards.map((c, i) => `

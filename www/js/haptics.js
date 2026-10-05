@@ -1,8 +1,9 @@
 import { settings } from './settings.js';
+import { native } from './native.js';
 
 // Uses the native Capacitor Haptics plugin when present (real Android haptic engine),
 // and falls back to navigator.vibrate in a plain browser.
-const plugin = () => globalThis.Capacitor?.Plugins?.Haptics;
+const plugin = () => native('Haptics');
 const STYLE = { light: 'LIGHT', medium: 'MEDIUM', heavy: 'HEAVY' };
 const FALLBACK_MS = { light: 8, medium: 16, heavy: 30 };
 let last = 0;

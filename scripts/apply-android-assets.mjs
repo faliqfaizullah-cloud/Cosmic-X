@@ -27,7 +27,8 @@ if (existsSync(gradle) && (APP_VERSION || APP_VERSION_CODE)) {
   console.log(`✓ version ${APP_VERSION} (${APP_VERSION_CODE})`);
 }
 
-// Permissions: haptics (vibrate), alarm notifications, weather (internet) and location for the Moon altitude.
+// Permissions: haptics, alarm notifications, internet (weather + map tiles), location, and the foreground
+// service that keeps the walk tracker recording with the screen off.
 const manifest = 'android/app/src/main/AndroidManifest.xml';
 if (existsSync(manifest)) {
   let m = readFileSync(manifest, 'utf8');
@@ -39,6 +40,9 @@ if (existsSync(manifest)) {
     'android.permission.RECEIVE_BOOT_COMPLETED',
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.ACCESS_FINE_LOCATION',
+    'android.permission.FOREGROUND_SERVICE',
+    'android.permission.FOREGROUND_SERVICE_LOCATION',
+    'android.permission.WAKE_LOCK',
   ];
   const add = perms.filter((p) => !m.includes(`"${p}"`)).map((p) => `    <uses-permission android:name="${p}" />`).join('\n');
   if (add) {

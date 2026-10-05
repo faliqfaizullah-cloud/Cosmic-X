@@ -3,10 +3,10 @@ const defaults = {
   sprinkles: true,
   density: 'med', // low | med | high
   reflection: true,
-  reactive: false, // routes audio through Web Audio for beat-reactive sprinkles
   sort: 'artist', // artist | title | recent
   shuffle: false,
   repeat: 'off', // off | all | one
+  weight: 70, // kg, for calorie estimates
   haptics: true,
   hapticStrength: 'normal', // soft | normal | strong
   lat: null,

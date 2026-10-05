@@ -1,35 +1,35 @@
-import { $, $$, toast, listen } from './util.js';
+import { $, $$, toast, listen, confirmSheet } from './util.js';
 import { icon } from './icons.js';
 import { settings } from './settings.js';
-import { library } from './library.js';
-import { player } from './player.js';
+import { activities } from './activities.js';
+import { tracker } from './tracker.js';
+import { alarms, pad } from './alarms.js';
+import { haptic } from './haptics.js';
 import { Sprinkles } from './sprinkles.js';
 import { CoverFlow } from './coverflow.js';
+import { fmtPace } from './track-math.js';
 import * as menuView from './views/menu.js';
-import * as playerView from './views/player.js';
-import * as libraryView from './views/library.js';
-import * as queueView from './views/queue.js';
-import * as searchView from './views/search.js';
-import * as settingsView from './views/settings.js';
+import * as walkView from './views/walk.js';
+import * as mapView from './views/map.js';
+import * as activitiesView from './views/activities.js';
 import * as moonView from './views/moon.js';
 import * as analyticsView from './views/analytics.js';
 import * as alarmView from './views/alarm.js';
 import * as metricsView from './views/metrics.js';
 import * as dataView from './views/data.js';
-import { alarms, pad } from './alarms.js';
-import { haptic } from './haptics.js';
-import { stats } from './stats.js';
+import * as searchView from './views/search.js';
+import * as settingsView from './views/settings.js';
 
 const VIEWS = {
+  walk: { title: 'Walk', icon: 'activity', mod: walkView },
+  map: { title: 'Map', icon: 'pin', mod: mapView },
+  activities: { title: 'History', icon: 'route', mod: activitiesView },
   menu: { title: 'Menu', icon: 'grid', mod: menuView },
   moon: { title: 'Moon', icon: 'moon', mod: moonView },
   analytics: { title: 'Analytics', icon: 'sun', mod: analyticsView },
   alarm: { title: 'Alarm', icon: 'bell', mod: alarmView },
   metrics: { title: 'Metrics', icon: 'gauge', mod: metricsView },
   data: { title: 'Data', icon: 'layers', mod: dataView },
-  player: { title: 'Now Playing', icon: 'play', mod: playerView },
-  library: { title: 'Library', icon: 'note', mod: libraryView },
-  queue: { title: 'Queue', icon: 'list', mod: queueView },
   search: { title: 'Ask', icon: 'wand', mod: searchView },
   settings: { title: 'Settings', icon: 'sliders', mod: settingsView },
 };
@@ -39,24 +39,21 @@ const titleEl = $('#title');
 const btnEdit = $('#btnEdit');
 const btnAdd = $('#btnAdd');
 const switcher = $('#switcher');
-const picker = $('#filePicker');
 
 let current = null;
 let currentId = null;
 let editFn = null;
 let addFn = null;
-let importing = false;
 
 // ---------------------------------------------------------------- app facade passed to views
 const app = {
-  library,
-  player,
+  activities,
+  tracker,
   settings,
   toast,
   go,
-  pickFiles: () => picker.click(),
   setTitle: (t) => { titleEl.textContent = t; },
-  /** Re-purpose the round "+" dock button for the current screen (default: import songs). */
+  /** Re-purpose the round dock button for the current screen (default: jump to the Walk screen). */
   setAdd(fn, iconName = 'plus') {
     addFn = fn || null;
     btnAdd.innerHTML = icon(iconName, 22);
@@ -70,7 +67,7 @@ const app = {
 
 // ---------------------------------------------------------------- router
 function go(id, params = {}, { push = true } = {}) {
-  if (!VIEWS[id]) id = 'menu';
+  if (!VIEWS[id]) id = 'walk';
   closeSwitcher();
   current?.destroy?.();
   stage.innerHTML = '';
@@ -103,53 +100,22 @@ function buildChrome() {
     .map(([id, v]) => `<button data-v="${id}">${icon(v.icon, 18)}<span>${v.title}</span></button>`)
     .join('');
 
-  $('#titleBtn').addEventListener('click', (e) => { e.stopPropagation(); switcher.hidden = !switcher.hidden; });
-  $('#title').addEventListener('click', (e) => { e.stopPropagation(); switcher.hidden = !switcher.hidden; });
-  switcher.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-v]');
-    if (b) go(b.dataset.v);
-  });
+  const toggleSwitcher = (e) => { e.stopPropagation(); switcher.hidden = !switcher.hidden; };
+  $('#titleBtn').addEventListener('click', toggleSwitcher);
+  $('#title').addEventListener('click', toggleSwitcher);
+  switcher.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) go(b.dataset.v); });
   document.addEventListener('click', (e) => { if (!switcher.hidden && !e.target.closest('#switcher')) closeSwitcher(); });
 
-  $('#btnClose').addEventListener('click', () => {
-    if (currentId === 'menu') go('moon');
-    else go('menu');
-  });
+  $('#btnClose').addEventListener('click', () => go(currentId === 'menu' ? 'walk' : 'menu'));
   btnEdit.addEventListener('click', () => editFn?.());
-  btnAdd.addEventListener('click', () => (addFn ? addFn() : picker.click()));
+  btnAdd.addEventListener('click', () => (addFn ? addFn() : go('walk')));
 }
 const closeSwitcher = () => { switcher.hidden = true; };
 
-// ---------------------------------------------------------------- importing songs
-picker.addEventListener('change', async () => {
-  const files = [...picker.files];
-  picker.value = '';
-  if (files.length) await importFiles(files);
-});
-
-async function importFiles(files) {
-  if (importing) return toast('An import is already running');
-  importing = true;
-  try {
-    const r = await library.importFiles(files, (i, n, name) => toast(`Importing ${i}/${n} · ${name}`, 60000));
-    const parts = [];
-    if (r.added) parts.push(`Added ${r.added} ${r.added === 1 ? 'song' : 'songs'}`);
-    if (r.skipped) parts.push(`${r.skipped} already in library`);
-    if (r.failed) parts.push(`${r.failed} unsupported`);
-    toast(parts.join(' · ') || 'Nothing imported', 3800);
-    haptic.notify(r.added ? 'success' : r.failed ? 'error' : 'warning');
-  } catch (e) {
-    console.error(e);
-    toast('Import failed');
-  } finally {
-    importing = false;
-  }
-}
-
 // ---------------------------------------------------------------- orientation: portrait UI <-> landscape Cover Flow
 const sprinkles = new Sprinkles($('#sprinkles'), {
-  getLevel: () => (settings.get('reactive') ? player.level() : 0),
-  isPlaying: () => player.playing,
+  getLevel: () => 0,
+  isPlaying: () => tracker.state === 'recording', // sprinkles speed up while you're out walking
   getDensity: () => settings.get('density'),
   isEnabled: () => settings.get('sprinkles'),
 });
@@ -187,13 +153,32 @@ settings.on((k) => {
 
 // ---------------------------------------------------------------- global haptics
 function wireGlobalHaptics() {
-  const PRIMARY = '.orb.center, .big, .round.light, .cta, .chip, .srch-play, .sheet-btn, .sw, .pill';
+  const PRIMARY = '.orb.center, .wc.main, .round.light, .cta, .chip, .sheet-btn, .sw, .pill';
   document.addEventListener('pointerdown', (e) => {
-    const t = e.target.closest('button, .tile, .orb, .qcard, .srow, .al-row');
+    const t = e.target.closest('button, .orb, .qcard, .al-row, .hrow');
     if (!t || t.closest('.cf-stage')) return; // Cover Flow has its own detents
-    if (t.matches('.orb:not(.center)')) return; // orbs buzz on open instead
+    if (t.matches('.orb:not(.center), .wc.main, .cf-ctl.big')) return; // these buzz on their own action
     t.matches(PRIMARY) ? haptic.press() : haptic.tap();
   }, { passive: true });
+}
+
+// ---------------------------------------------------------------- tracker events (work on every screen)
+function wireTracker() {
+  listen(tracker, 'km', (e) => toast(`${e.detail.km} km · avg ${fmtPace(e.detail.pace)} /km`, 3500));
+  listen(tracker, 'recovered', () => toast('Recovered an unfinished walk · open Walk to resume or finish it', 5000));
+  listen(tracker, 'finish', () => haptic.notify('success'));
+  listen(tracker, 'error', async (e) => {
+    if (e.detail.code === 'NOT_AUTHORIZED') {
+      haptic.notify('error');
+      const open = await confirmSheet({
+        title: 'Location is turned off',
+        message: 'Allow Cosmic X to use your location. Choose “Allow all the time” (or “While using the app”) so your walk keeps recording with the screen off.',
+        confirm: 'Open settings', danger: false,
+      });
+      if (open) tracker.openSettings();
+      if (tracker.state === 'recording') tracker.pause();
+    } else toast('GPS problem: ' + (e.detail.message || e.detail.code), 4000);
+  });
 }
 
 // ---------------------------------------------------------------- alarm ringer overlay
@@ -220,40 +205,16 @@ async function boot() {
   try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
   document.documentElement.classList.toggle('no-reflect', !settings.get('reflection'));
   buildChrome();
-
-  try {
-    await library.load();
-  } catch (e) {
-    console.error('[boot] library failed to load', e);
-    toast('Could not open your library storage');
-  }
-  if (library.songs.length) {
-    const last = library.byId.get(localStorage.getItem('cx.last')) || library.songs[0];
-    await player.playList(library.songs, last.id, { play: false });
-  }
-
-  // keep player + chrome in sync with library changes
-  listen(library, 'change', (e) => {
-    const d = e.detail || {};
-    if (d.removed) player.handleRemoved([d.removed]);
-    if (d.cleared) player.handleRemoved(player.list.map((s) => s.id));
-    if (!player.current && library.songs.length) {
-      const s = library.byId.get(localStorage.getItem('cx.last')) || library.songs[0];
-      player.playList(library.songs, s.id, { play: false });
-    }
-  });
-
-  listen(player, 'error', (e) => toast(`Can't play “${e.detail.song.title}”`));
-
+  await activities.load();
+  await tracker.recover();
   alarms.start();
-  stats.start(player);
   buildRinger();
   wireGlobalHaptics();
+  wireTracker();
 
   applyMode();
-  const start = 'moon'; // the original design opens on the Moon screen
-  history.replaceState({ v: start, p: {} }, '');
-  go(start, {}, { push: false });
+  history.replaceState({ v: 'walk', p: {} }, '');
+  go('walk', {}, { push: false });
 }
 
 boot();

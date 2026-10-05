@@ -1,5 +1,5 @@
 import { icon } from '../icons.js';
-import { alarms, describeDays, fmtIn, pad } from '../alarms.js';
+import { alarms, describeDays, fmtIn } from '../alarms.js';
 import { haptic } from '../haptics.js';
 import { esc, listen, confirmSheet } from '../util.js';
 

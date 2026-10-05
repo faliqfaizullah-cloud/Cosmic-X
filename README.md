@@ -1,75 +1,34 @@
-# Cosmic X  (v1.1)
+# Cosmic X  (v1.2)
 
-A glassy music player for Android, based on the Cosmic X concept UI: dotted-grid black canvas, radial glass-orb menu, big gradient cards, 3D stacked cards, and a blurred-gradient prompt screen.
+A frosted-glass **walking tracker** for Android (similar to Strava), plus the original Cosmic X screens.
 
-- **Original Cosmic X screens (v1.1):**
-  - **Moon** — the opening screen. Real phase, illumination, distance, age and altitude, a painted moon, and a dial you drag to travel ±60 days.
-  - **Analytics** — weather widgets (temperature + sun arc, UV, humidity, wind, pressure, luminosity, hourly curve) from Open-Meteo.
-  - **Alarm** — mint card, alarm list, editor, snooze. Rings in-app and via native notifications when the app is closed.
-  - **Metrics** — listening time, battery, library and storage.
-  - **Data** — the stacked 3D cards that jump to every screen.
-  - **Ask** — the blurred-gradient prompt screen. Type *"show me the weather analytics today"*, *"create a new alarm"*, *"set an alarm at 6:30 am"*, *"when is the next full moon"*, or a song name.
-- **Haptics everywhere** — taps, detents while scrolling Cover Flow / decks / the moon dial, success-warning-error buzzes, alarm pulses. Strength and on/off in Settings.
-- **Import your own songs** from phone storage (mp3, m4a/aac, flac, ogg/opus, wav). Title, artist, album and cover art are read from the file tags.
-- **Portrait** — the Cosmic X UI: Menu (orbs) · Now Playing · Library · Queue (stacked cards) · Search · Settings.
-- **Landscape** — rotate the phone for an **iOS 4 style Cover Flow** with glossy reflections and colourful **sprinkles** drifting behind it (they speed up while music plays).
+## Walk tracker
+- **Walk** — the hero widget: a frosted-glass tile with your live route outline, distance, time, calories and pace, plus two small widgets (speed with a glowing-dot arc, elevation gain with a marker arc).
+- **Background tracking** — keeps recording with the screen off via a native foreground service (a "walk in progress" notification shows while it runs). Autosaves every 15 s, so a crash never loses your route; unfinished walks are offered for resume.
+- **Map** — live OpenStreetMap tiles (drawn dark) with your route; drag, pinch, double-tap to zoom, follow-me, fit-route.
+- **History** — every walk with a route card, per-km **splits**, climb, calories, and **Copy GPX** to move a walk to Strava/Komoot.
+- **Smart GPS filtering** — drops weak fixes and GPS jumps, ignores standing-still jitter, excludes pauses from time and distance.
+- **Haptics** — a buzz at every kilometre, plus taps and detents throughout (Settings → Haptics).
+- **Landscape** — rotate for an **iOS 4 Cover Flow of your walks** (frosted route cards, reflections, sprinkles) with Start / Pause / Finish controls.
+
+## Original Cosmic X screens
+Moon (real phase, distance, altitude, time-travel dial) · Analytics (weather widgets) · Alarm · Metrics · Data (stacked cards) · Ask (type "start a walk", "set an alarm at 6:30 am", "show me the weather analytics today"…) · orb Menu.
 
 ## Get the APK on GitHub
-
-1. Create a new GitHub repo and push this folder to it.
-2. Release it:
-   ```bash
-   git tag v1.0.0
-   git push --tags
-   ```
-3. GitHub Actions (`.github/workflows/build-apk.yml`) builds the app and attaches **CosmicX-1.0.0-debug.apk** to a new Release. You can also run it by hand from the **Actions** tab (the APK is attached as a build artifact).
-
-The debug-signed APK installs fine on any phone (allow "install unknown apps"). For a properly signed release APK, add these **repository secrets** and the workflow signs automatically:
-
-| Secret | Value |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 my-release.jks` |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-| `ANDROID_KEY_ALIAS` | key alias |
-| `ANDROID_KEY_PASSWORD` | key password (optional if same as keystore) |
-
-Create a keystore once with `keytool -genkeypair -v -keystore my-release.jks -alias cosmicx -keyalg RSA -keysize 2048 -validity 10000`, and **keep it safe** — updates must be signed with the same key.
-
-## Build locally
-
-Needs Node 20+, JDK 21 and the Android SDK (or Android Studio).
-
 ```bash
-npm install
-npx cap add android
-npm run android:assets     # icons, colours, black launch screen
-npx cap sync android
-npm run apk:debug          # -> android/app/build/outputs/apk/debug/app-debug.apk
+git add -A && git commit -m "Cosmic X 1.2" && git push
+git tag v1.2.0 && git push origin v1.2.0
 ```
-To tweak the web UI, edit files in `www/` and run `npx cap sync android` again. Change the package id (`com.cosmicx.player`) in `capacitor.config.json` before publishing.
+GitHub Actions builds the app and attaches `CosmicX-1.2.0-debug.apk` to a Release (see `.github/workflows/build-apk.yml`; add the keystore secrets there for a signed release APK).
 
-## Project layout
+## First run on the phone
+1. Open **Walk**, tap ▶. Allow **location** (choose *Allow all the time* for reliable background tracking) and **notifications**.
+2. If tracking stops after a while, set Cosmic X to **Battery → Unrestricted** in Android settings.
 
-```
-www/                  the whole app (plain HTML/CSS/ES modules, no bundler)
-  js/main.js          shell, router, orientation switch (portrait <-> Cover Flow)
-  js/coverflow.js     iOS 4 Cover Flow (CSS 3D + box-reflect, spring physics)
-  js/sprinkles.js     canvas sprinkles + sparkles
-  js/player.js        audio engine: queue, shuffle, repeat, Media Session
-  js/library.js, db.js, tags.js   import pipeline, IndexedDB, ID3/MP4/FLAC/Ogg tag reader
-  js/views/           menu · player · library · queue · search · settings
-resources/android/    launcher icons + colours applied by scripts/apply-android-assets.mjs
-test/                 `npm test` — tag parser, scroller physics, moon astronomy, alarms, prompt intents
-```
+## Tests
+`npm test` runs ~63 checks: tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
 
 ## Notes
-
-- Haptics use the native Capacitor Haptics plugin (falls back to `navigator.vibrate` in a browser). Alarms use the Local Notifications plugin. Both are installed by `npm install` and need no extra setup.
-- Weather needs internet (first load); the last result is cached for offline use. The Moon altitude uses your location if you allow it, otherwise Kuala Lumpur.
-- Alarm notifications on Android 13+ ask for notification permission the first time you save an alarm. On some phones, battery-saver can delay exact alarms.
-- Not included from the concept video: wearable-device data (Watch / Ring) and the Membership plans screen.
-
-- Imported songs are **copied into the app's own storage** (IndexedDB), so they keep working if the original file moves. Use Settings → Clear library to free the space.
-- Android can pause a WebView's audio shortly after the screen locks on some phones. A native foreground-service plugin would make background playback bulletproof.
-- *Beat-reactive sprinkles* (Settings, beta) route audio through Web Audio; it's off by default because it can interfere with background playback.
-- The Cosmic X concept video is a design reference. This project recreates the look from scratch and uses none of its assets.
+- Map tiles come from the public OpenStreetMap server (fine for personal use). For heavy use, switch `TILE_URL` in `www/js/views/map.js` to a tile provider.
+- Heart rate, contact time and vertical oscillation in the reference design come from wearables, so the small widgets show GPS-derived speed and elevation instead; calories and steps are estimates.
+- Weather needs internet. Distances/speeds come from GPS only; accuracy depends on the sky view.

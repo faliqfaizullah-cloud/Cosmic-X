@@ -1,9 +1,10 @@
 import { uid } from './util.js';
 import { haptic } from './haptics.js';
+import { native } from './native.js';
 
 const KEY = 'cx.alarms.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const notifs = () => globalThis.Capacitor?.Plugins?.LocalNotifications;
+const notifs = () => native('LocalNotifications');
 
 // ---------- pure helpers (unit-tested) ----------
 export const pad = (n) => String(n).padStart(2, '0');

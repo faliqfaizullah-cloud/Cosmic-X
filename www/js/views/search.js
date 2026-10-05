@@ -1,15 +1,12 @@
 import { icon } from '../icons.js';
-import { esc, fmtTime, listen } from '../util.js';
+import { esc } from '../util.js';
 import { parseIntent } from '../intents.js';
 import { haptic } from '../haptics.js';
 
-const FILLER = new Set(['play', 'show', 'me', 'find', 'search', 'songs', 'song', 'music', 'by', 'from', 'some', 'something', 'put', 'on', 'hear', 'i', 'want', 'to']);
-const EXAMPLES = ['Show me the weather analytics today', 'Create a new application of the alarm clock', 'Set an alarm at 6:30 am', 'When is the next full moon', 'Play something by…'];
+const EXAMPLES = ['Show me the weather analytics today', 'Create a new application of the alarm clock', 'Start a walk', 'Set an alarm at 6:30 am', 'Show my past walks', 'When is the next full moon'];
 
 export function mount(el, app) {
-  const { library, player, go } = app;
-  const offs = [];
-  let results = [];
+  const { go } = app;
   let intent = null;
   let typer = 0;
 
@@ -39,54 +36,40 @@ export function mount(el, app) {
   }
   typeLoop();
 
-  const clean = (s) => s.toLowerCase().split(/\s+/).filter((w) => w && !FILLER.has(w)).join(' ');
-
   function run() {
     const raw = q.value.trim();
     intent = parseIntent(raw);
-    results = !raw || intent ? [] : library.search(clean(raw) || raw);
     let html = '';
-    if (intent) html += `<button class="srow act" data-intent><span class="srow-art ic">${icon('wand', 20)}</span><span class="srow-meta"><b>${esc(intent.label)}</b><i>Tap or press Go</i></span></button>`;
-    if (raw && !intent) {
-      html += results.length
-        ? results.slice(0, 40).map((s) => `<button class="srow" data-id="${s.id}"><span class="srow-art" style="${library.artBg(s)}"></span><span class="srow-meta"><b>${esc(s.title)}</b><i>${esc(s.artist)}</i></span><span class="srow-t">${fmtTime(s.duration)}</span></button>`).join('')
-        : '<div class="srch-none">No matches in your library</div>';
+    if (intent) {
+      html = `<button class="srow act" data-intent><span class="srow-art ic">${icon('wand', 20)}</span><span class="srow-meta"><b>${esc(intent.label)}</b><i>Tap or press Go</i></span></button>`;
+    } else if (raw) {
+      html = `<div class="srch-none">I don't know that one yet. Try:</div>` +
+        EXAMPLES.slice(0, 4).map((x) => `<button class="srow" data-fill="${esc(x)}"><span class="srow-art ic">${icon('wand', 18)}</span><span class="srow-meta"><b>${esc(x)}</b></span></button>`).join('');
     }
     res.innerHTML = html;
-    goBtn.hidden = !(intent || results.length);
-    goBtn.querySelector('span').textContent = intent ? 'Go' : results.length > 1 ? `Play ${results.length} results` : 'Play';
-    goBtn.firstElementChild.outerHTML = icon(intent ? 'wand' : 'play', 16);
+    goBtn.hidden = !intent;
   }
 
   function execute() {
-    if (intent) {
-      haptic.thud();
-      go(intent.view, intent.create ? { _create: intent.create } : {});
-    } else if (results.length) {
-      haptic.thud();
-      player.playList(results, results[0].id);
-      go('player');
-    }
+    if (!intent) return;
+    haptic.thud();
+    const c = intent.create;
+    go(intent.view, { _create: c, _start: !!c?.start });
   }
 
   q.addEventListener('input', run);
-  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (intent || results.length) execute(); else q.blur(); } });
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); intent ? execute() : q.blur(); } });
   goBtn.addEventListener('click', execute);
   res.addEventListener('click', (e) => {
     if (e.target.closest('[data-intent]')) return execute();
-    const r = e.target.closest('.srow[data-id]');
-    if (!r) return;
-    haptic.thud();
-    player.playList(results, r.dataset.id);
-    go('player');
+    const f = e.target.closest('[data-fill]');
+    if (f) { q.value = f.dataset.fill; run(); }
   });
   el.querySelector('.srch').addEventListener('pointerdown', (e) => {
     if (!e.target.closest('button, .srch-results')) setTimeout(() => q.focus(), 0);
   });
 
-  offs.push(listen(library, 'change', run));
   const t = setTimeout(() => q.focus(), 480);
-
   app.setEdit('Clear', () => { q.value = ''; run(); q.focus(); });
-  return { destroy: () => { clearTimeout(t); clearTimeout(typer); offs.forEach((f) => f()); } };
+  return { destroy: () => { clearTimeout(t); clearTimeout(typer); } };
 }
