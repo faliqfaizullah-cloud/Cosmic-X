@@ -8,25 +8,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RadialGradient;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.widget.RemoteViews;
-import java.util.Random;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * 2x2 home-screen widget in the same frosted-glass style as the in-app Walk widget.
- * The whole tile is drawn into one bitmap (28dp corners, glass pane, route, bold-italic text)
- * because RemoteViews cannot blur or draw routes.
+ * 2x2 home-screen widget: a solid dark or solid white tile (follows the phone's theme, or the
+ * "Widget style" setting inside the app) with 28dp corners, route outline, and bold-italic text.
+ * The whole tile is drawn into one bitmap because RemoteViews cannot draw routes.
  */
 public class WalkWidgetProvider extends AppWidgetProvider {
     static final String PREFS = "cosmicx_widget";
@@ -67,6 +62,15 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         return new JSONObject();
     }
 
+    /** "dark" / "light" force a style; anything else follows the phone's day/night theme. */
+    static boolean isDark(Context ctx, JSONObject s) {
+        String theme = s.optString("theme", "auto");
+        if ("dark".equals(theme)) return true;
+        if ("light".equals(theme)) return false;
+        int night = ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return night == Configuration.UI_MODE_NIGHT_YES;
+    }
+
     static void render(Context ctx, AppWidgetManager manager, int id) {
         float density = ctx.getResources().getDisplayMetrics().density;
         Bundle opts = manager.getAppWidgetOptions(id);
@@ -78,7 +82,8 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         // keep the bitmap comfortably below the RemoteViews memory limit
         float maxPx = 520f;
         float scale = Math.min(1f, maxPx / (Math.max(wDp, hDp) * density));
-        Bitmap bmp = draw(wDp, hDp, density * scale, loadState(ctx));
+        JSONObject state = loadState(ctx);
+        Bitmap bmp = draw(wDp, hDp, density * scale, state, isDark(ctx, state));
 
         RemoteViews views = new RemoteViews(ctx.getPackageName(), R.layout.widget_walk);
         views.setImageViewBitmap(R.id.widget_img, bmp);
@@ -93,11 +98,23 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         return s.length() <= max ? s : s.substring(0, max - 1) + "\u2026";
     }
 
-    static Bitmap draw(int wDp, int hDp, float d, JSONObject s) {
+    static Bitmap draw(int wDp, int hDp, float d, JSONObject s, boolean dark) {
         int w = Math.max(1, Math.round(wDp * d));
         int h = Math.max(1, Math.round(hDp * d));
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
+
+        // palette: solid dark or solid white
+        int bg = dark ? 0xFF121214 : 0xFFFFFFFF;
+        int ink = dark ? 0xFFFFFFFF : 0xFF111114;
+        int inkDim = dark ? 0xA6FFFFFF : 0xA6111114;
+        int hairline = dark ? 0x26FFFFFF : 0x1F000000;
+        int chipIdle = dark ? 0x24FFFFFF : 0x14000000;
+        int lime = 0xFFD7FF2F;
+        int amber = 0xFFFFE078;
+        int onAccent = 0xFF1B2A00;
+        int ring = dark ? 0xFFFFE36B : 0xFFE5A800;
+        int dot = dark ? 0xFFFFE36B : 0xFFF2B600;
 
         // 28dp rounded corners
         float corner = CORNER_DP * d;
@@ -106,53 +123,16 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         c.clipPath(clip);
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-        // 1) backdrop: cool grey-blue fading to salmon, like the in-app Walk screen
-        p.setShader(new LinearGradient(0, 0, 0, h, new int[]{0xFFA8AFBF, 0xFFB6B3C0, 0xFFD6A596, 0xFFEC9B80},
-                new float[]{0f, 0.34f, 0.66f, 1f}, Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, w, h, p);
-        p.setShader(null);
-
-        // 2) blurred dark silhouette the glass sits on
-        p.setColor(0xFF151B27);
-        p.setMaskFilter(new BlurMaskFilter(Math.max(2f, 9f * d), BlurMaskFilter.Blur.NORMAL));
-        c.drawRoundRect(new RectF(w * 0.38f, -h * 0.06f, w * 0.60f, h * 0.42f), 12f * d, 12f * d, p);
-        c.drawOval(new RectF(w * 0.14f, h * 0.50f, w * 0.88f, h * 1.12f), p);
-        p.setMaskFilter(null);
-
-        // 3) frosted glass pane
-        float m = 7f * d;
-        RectF glass = new RectF(m, m, w - m, h - m);
-        float gr = corner - m + 3f * d;
-        Path glassPath = new Path();
-        glassPath.addRoundRect(glass, gr, gr, Path.Direction.CW);
         p.setStyle(Paint.Style.FILL);
-        p.setShader(new LinearGradient(glass.left, glass.top, glass.right, glass.bottom,
-                new int[]{0x6DFFFFFF, 0x22FFFFFF, 0x3AFFFFFF}, new float[]{0f, 0.58f, 1f}, Shader.TileMode.CLAMP));
-        c.drawPath(glassPath, p);
-        p.setShader(null);
+        p.setColor(bg);
+        c.drawRect(0, 0, w, h, p);
 
-        c.save();
-        c.clipPath(glassPath);
-        // cool rim light, bottom-left (as in the reference)
-        p.setShader(new RadialGradient(glass.left + 10f * d, glass.bottom - 8f * d, 52f * d, 0x663CA0E6, 0x003CA0E6, Shader.TileMode.CLAMP));
-        c.drawRect(glass, p);
-        p.setShader(null);
-        // fine frosted grain
-        Random rnd = new Random(7);
-        int dots = (w * h) / 70;
-        for (int i = 0; i < dots; i++) {
-            float x = rnd.nextFloat() * w;
-            float y = rnd.nextFloat() * h;
-            p.setColor(rnd.nextBoolean() ? 0x16FFFFFF : 0x10000000);
-            c.drawRect(x, y, x + Math.max(1f, d * 0.7f), y + Math.max(1f, d * 0.7f), p);
-        }
-        c.restore();
-
+        // thin edge so a white tile stays visible on a white wallpaper (and a dark one on black)
+        float hl = Math.max(1f, d);
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(Math.max(1f, 1.1f * d));
-        p.setColor(0x9AFFFFFF);
-        c.drawRoundRect(glass, gr, gr, p);
+        p.setStrokeWidth(hl);
+        p.setColor(hairline);
+        c.drawRoundRect(new RectF(hl / 2f, hl / 2f, w - hl / 2f, h - hl / 2f), corner, corner, p);
         p.setStyle(Paint.Style.FILL);
 
         // ---- content (everything scales with the widget size; text shrinks to fit its slot) ----
@@ -165,8 +145,8 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         float pad = 17f * d;
         float inner = w - 2f * pad;
 
-        // route outline + glowing yellow location dot
-        drawRoute(c, p, s.optJSONArray("route"), pad, 34f * e, w - pad, h * 0.56f, e);
+        // route outline + location dot
+        drawRoute(c, p, s.optJSONArray("route"), pad, 34f * e, w - pad, h * 0.56f, e, ink, ring, dot);
 
         Typeface tf = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC);
         p.setTypeface(tf);
@@ -177,9 +157,9 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         p.setTextSize(8.5f * e);
         float cw = p.measureText(chip) + 12f * e;
         RectF chipRect = new RectF(pad, 13f * e, pad + cw, 28f * e);
-        p.setColor("recording".equals(state) ? 0xD9D7FF2F : "paused".equals(state) ? 0xD9FFE078 : 0x38FFFFFF);
+        p.setColor("recording".equals(state) ? lime : "paused".equals(state) ? amber : chipIdle);
         c.drawRoundRect(chipRect, 8f * e, 8f * e, p);
-        p.setColor("idle".equals(state) ? 0xF2FFFFFF : 0xFF1B2A00);
+        p.setColor("idle".equals(state) ? ink : onAccent);
         c.drawText(chip, pad + 6f * e, chipRect.bottom - 4.2f * e, p);
 
         float nameRoom = inner - cw - 8f * e;
@@ -188,10 +168,8 @@ public class WalkWidgetProvider extends AppWidgetProvider {
             name = fit(name, name.length() - 1);
         }
         p.setTextAlign(Paint.Align.RIGHT);
-        p.setColor(0xF2FFFFFF);
-        p.setShadowLayer(3f * e, 0, e, 0x2E000000);
+        p.setColor(ink);
         c.drawText(name, w - pad, 25.5f * e, p);
-        p.clearShadowLayer();
         p.setTextAlign(Paint.Align.LEFT);
 
         // row 2: time (left) + pace (right); drop the "/Km" suffix, then shrink, if it doesn't fit
@@ -206,12 +184,13 @@ public class WalkWidgetProvider extends AppWidgetProvider {
             rowSize = Math.max(6.5f * e, rowSize * inner / need);
             p.setTextSize(rowSize);
         }
+        p.setColor(inkDim);
         c.drawText(time, pad, row2, p);
         p.setTextAlign(Paint.Align.RIGHT);
         c.drawText(paceTxt, w - pad, row2, p);
         p.setTextAlign(Paint.Align.LEFT);
 
-        // hero: big distance with the soft white glow from the design; shrinks so "<dist> KM" always fits
+        // hero: big distance; shrinks so "<dist> KM" always fits
         float base = h - 19f * e;
         float kmSize = 10f * e;
         p.setTextSize(kmSize);
@@ -225,17 +204,16 @@ public class WalkWidgetProvider extends AppWidgetProvider {
             p.setTextSize(heroSize);
             dw = p.measureText(dist);
         }
-        p.setColor(0xFFFFFFFF);
-        p.setShadowLayer(9f * e, 0, 3f * e, 0xA8FFFFFF);
+        p.setColor(ink);
         c.drawText(dist, pad, base, p);
-        p.clearShadowLayer();
         p.setTextSize(kmSize);
-        p.setColor(0xB8FFFFFF);
+        p.setColor(inkDim);
         c.drawText("KM", pad + dw + 5f * e, base, p);
         return bmp;
     }
 
-    private static void drawRoute(Canvas c, Paint p, JSONArray arr, float left, float top, float right, float bottom, float d) {
+    private static void drawRoute(Canvas c, Paint p, JSONArray arr, float left, float top, float right, float bottom, float d,
+                                  int line, int ring, int dot) {
         float[] pts;
         if (arr != null && arr.length() >= 4) {
             pts = new float[arr.length() - (arr.length() % 2)];
@@ -260,19 +238,16 @@ public class WalkWidgetProvider extends AppWidgetProvider {
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeCap(Paint.Cap.ROUND);
         p.setStrokeJoin(Paint.Join.ROUND);
-        p.setStrokeWidth(Math.max(1.2f, 1.5f * d));
-        p.setColor(demo ? 0x8CFFFFFF : 0xEBFFFFFF);
-        p.setShadowLayer(4f * d, 0, 0, 0x80FFFFFF);
+        p.setStrokeWidth(Math.max(1.2f, 1.7f * d));
+        // the placeholder outline is drawn at ~40% so it reads as "nothing recorded yet"
+        p.setColor(demo ? ((line & 0x00FFFFFF) | 0x66000000) : line);
         c.drawPath(path, p);
-        p.clearShadowLayer();
 
-        p.setStrokeWidth(Math.max(1.2f, 1.4f * d));
-        p.setColor(0xD9FFE178);
+        p.setStrokeWidth(Math.max(1.2f, 1.5f * d));
+        p.setColor(ring);
         c.drawCircle(ex, ey, 7.5f * d, p);
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFFFFE36B);
-        p.setShadowLayer(5f * d, 0, 0, 0xFFFFE36B);
-        c.drawCircle(ex, ey, 3.2f * d, p);
-        p.clearShadowLayer();
+        p.setColor(dot);
+        c.drawCircle(ex, ey, 3.4f * d, p);
     }
 }

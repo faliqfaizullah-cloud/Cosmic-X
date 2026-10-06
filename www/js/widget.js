@@ -1,6 +1,7 @@
 import { native } from './native.js';
 import { simplify, normalizeRoute, fmtKm, fmtDur, fmtPace, paceOf, defaultName } from './track-math.js';
 import { listen } from './util.js';
+import { settings } from './settings.js';
 
 // Route box used by the native widget (WalkWidgetProvider.drawRoute fits a 2.4:1 box)
 const RW = 480, RH = 200;
@@ -39,7 +40,7 @@ export function startWidgetSync(tracker, activities, { plugin = () => native('Co
   const push = () => {
     const p = plugin();
     if (!p?.update) return null;
-    const state = buildWidgetState(tracker, activities.list[0]);
+    const state = { ...buildWidgetState(tracker, activities.list[0]), theme: settings.get('widgetTheme') };
     const json = JSON.stringify(state);
     if (json === lastJson) return state;
     lastJson = json;
@@ -48,6 +49,7 @@ export function startWidgetSync(tracker, activities, { plugin = () => native('Co
   };
   listen(tracker, 'state', push);
   listen(activities, 'change', push);
+  settings.on((k) => k === 'widgetTheme' && push());
   const timer = setInterval(() => tracker.state === 'recording' && push(), 5000);
   push();
   return { push, stop: () => clearInterval(timer) };

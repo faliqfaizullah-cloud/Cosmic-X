@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 globalThis.localStorage = { getItem: () => null, setItem() {} };
 const { routeFlat, buildWidgetState, startWidgetSync } = await import('../www/js/widget.js');
+const { settings } = await import('../www/js/settings.js');
 let n = 0; const t = (name, fn) => { fn(); n++; console.log('ok  -', name); };
 
 const pts = Array.from({ length: 2000 }, (_, i) => [3.139 + i * 0.00002, 101.687 + Math.sin(i / 90) * 0.002, 1.7e12 + i * 2000, 20]);
@@ -25,8 +26,9 @@ t('sync pushes to the native plugin, skips identical payloads, and no-ops withou
   const calls = []; const ev = new EventTarget(); const acts = Object.assign(new EventTarget(), { list: [last] });
   const tr = Object.assign(ev, { state: 'idle', startedAt: 0, snap: { state: 'idle', points: [] } });
   const h = startWidgetSync(tr, acts, { plugin: () => ({ update: (s) => { calls.push(s); return Promise.resolve(); } }) });
-  assert.equal(calls.length, 1); h.push(); assert.equal(calls.length, 1, 'identical payload skipped');
+  assert.equal(calls.length, 1); assert.equal(calls[0].theme, 'auto', 'theme travels with the state'); h.push(); assert.equal(calls.length, 1, 'identical payload skipped');
   acts.list = [{ ...last, distance: 7000 }]; h.push(); assert.equal(calls.length, 2);
+  settings.set('widgetTheme', 'dark'); assert.equal(calls.length, 3, 'changing the style re-pushes immediately'); assert.equal(calls[2].theme, 'dark');
   h.stop();
   const none = startWidgetSync(tr, acts, { plugin: () => null }); assert.equal(none.push(), null); none.stop();
 });

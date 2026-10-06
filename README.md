@@ -13,7 +13,7 @@ A frosted-glass **walking tracker** for Android (similar to Strava), plus the or
 
 ## Full screen, home-screen widget, bold italic
 - **Full screen** — immersive edge-to-edge: status and navigation bars are hidden (swipe from an edge to peek at them), and the app draws behind the camera cut-out.
-- **Home-screen widget (2×2, 28dp corners)** — long-press the home screen → *Widgets* → **Cosmic X**. Same frosted-glass look as the in-app Walk widget: route outline with the glowing dot, distance, time and pace, plus a REC / PAUSED / READY chip. It shows your live walk while recording and your latest walk otherwise; tap it to open the app. It redraws on every state change and every 5 s while recording.
+- **Home-screen widget (2×2, 28dp corners)** — long-press the home screen → *Widgets* → **Cosmic X**. A clean **solid dark or solid white** tile (follows your phone's theme; force one in Settings → Home-screen widget): route outline with a location dot, distance, time and pace, plus a REC / PAUSED / READY chip. It shows your live walk while recording and your latest walk otherwise; tap it to open the app. It redraws on every state change and every 5 s while recording.
 - **Bold italic** — all text in the app and the widget is bold italic.
 
 ## Original Cosmic X screens

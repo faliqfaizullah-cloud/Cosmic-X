@@ -1,5 +1,6 @@
 package __APP_ID__;
 
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
@@ -22,6 +23,12 @@ public class MainActivity extends BridgeActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) goImmersive(); // bars come back after a swipe / dialog: hide them again
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        WalkWidgetProvider.refreshAll(this); // phone switched between light and dark: restyle the widget now
     }
 
     private void goImmersive() {

@@ -25,6 +25,11 @@ export function mount(el, app) {
           <button class="chip" data-osettings>Open</button></div>
       </div>
       <div class="set-card">
+        <div class="set-h">Home-screen widget</div>
+        ${seg('widgetTheme', 'Widget style', [['auto', 'Auto'], ['dark', 'Dark'], ['light', 'White']])}
+        <div class="row"><div><span>Solid dark or solid white. “Auto” follows your phone’s light/dark theme. Long-press the home screen → Widgets → Cosmic X.</span></div></div>
+      </div>
+      <div class="set-card">
         <div class="set-h">Haptics</div>
         ${toggle('haptics', 'Haptic feedback', 'Taps, detents in Cover Flow and dials, a buzz every kilometre, alarm pulses')}
         ${seg('hapticStrength', 'Strength', [['soft', 'Soft'], ['normal', 'Normal'], ['strong', 'Strong']])}

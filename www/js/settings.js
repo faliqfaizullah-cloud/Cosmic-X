@@ -7,6 +7,7 @@ const defaults = {
   shuffle: false,
   repeat: 'off', // off | all | one
   weight: 70, // kg, for calorie estimates
+  widgetTheme: 'auto', // home-screen widget: auto (follows the phone) | dark | light
   haptics: true,
   hapticStrength: 'normal', // soft | normal | strong
   lat: null,
