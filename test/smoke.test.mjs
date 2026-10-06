@@ -72,5 +72,14 @@ n++; console.log('ok  - cover flow renders (activities)');
 const { routeCard } = await import('../www/js/route-art.js');
 assert.ok(routeCard(activities.list[0]).startsWith('data:')); assert.ok(routeCard(null, { seed: 3 }).startsWith('data:'));
 n++; console.log('ok  - route cards render');
+// boot the whole app shell (router, aura, title swap, global haptics, tracker + widget wiring)
+Object.assign(globalThis, { screen: { orientation: { type: 'portrait-primary', addEventListener() {} } }, history: { replaceState() {}, pushState() {} } });
+console.warn = () => {}; // storage isn't available in Node; the app handles that and logs a warning
+const errors = [];
+process.on('unhandledRejection', (e) => errors.push(e)); process.on('uncaughtException', (e) => errors.push(e));
+await import('../www/js/main.js');
+await new Promise((r) => setTimeout(r, 300));
+assert.deepEqual(errors.map(String), [], 'app shell boots without errors');
+n++; console.log('ok  - app shell boots (router + transitions)');
 console.log(`\n${n} smoke checks passed`);
 process.exit(0);

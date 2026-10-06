@@ -9,6 +9,7 @@ import { Sprinkles } from './sprinkles.js';
 import { CoverFlow } from './coverflow.js';
 import { fmtPace } from './track-math.js';
 import { startWidgetSync } from './widget.js';
+import { applyAura, direction, replay } from './ui-motion.js';
 import * as menuView from './views/menu.js';
 import * as walkView from './views/walk.js';
 import * as mapView from './views/map.js';
@@ -36,6 +37,7 @@ const VIEWS = {
 };
 
 const stage = $('#stage');
+const aura = $('#aura');
 const titleEl = $('#title');
 const btnEdit = $('#btnEdit');
 const btnAdd = $('#btnAdd');
@@ -53,7 +55,11 @@ const app = {
   settings,
   toast,
   go,
-  setTitle: (t) => { titleEl.textContent = t; },
+  setTitle: (t) => {
+    if (titleEl.textContent === t) return;
+    titleEl.textContent = t;
+    replay(titleEl, 'swap');
+  },
   /** Re-purpose the round dock button for the current screen (default: jump to the Walk screen). */
   setAdd(fn, iconName = 'plus') {
     addFn = fn || null;
@@ -71,12 +77,25 @@ function go(id, params = {}, { push = true } = {}) {
   if (!VIEWS[id]) id = 'walk';
   closeSwitcher();
   current?.destroy?.();
-  stage.innerHTML = '';
+
+  // the old screen blurs/slides out while the new one blurs/slides in (direction follows the nav order)
+  const dir = direction(currentId, id);
+  for (const old of stage.querySelectorAll('.view:not(.leaving)')) {
+    old.removeAttribute('id');
+    old.style.setProperty('--dx', `${-dir * 22}px`);
+    old.classList.add('leaving');
+    setTimeout(() => old.remove(), 300);
+  }
   const el = document.createElement('div');
-  el.className = 'view';
+  el.className = 'view enter fresh';
   el.id = `v-${id}`;
+  el.style.setProperty('--dx', `${dir * 34}px`);
   stage.append(el);
+  setTimeout(() => el.classList.remove('enter'), 700);
+  setTimeout(() => el.classList.remove('fresh'), 1100); // list-item stagger only plays on arrival, not on re-renders
+
   currentId = id;
+  applyAura(aura, id);
   app.setTitle(params.title || VIEWS[id].title);
   app.setEdit(null);
   app.setAdd(null);
@@ -152,6 +171,14 @@ settings.on((k) => {
   if (k === 'reflection') document.documentElement.classList.toggle('no-reflect', !settings.get('reflection'));
 });
 
+// ---------------------------------------------------------------- look: glass quality + ambient glow
+function applyLook() {
+  const r = document.documentElement.classList;
+  r.toggle('lite-glass', settings.get('glass') === 'lite');
+  r.toggle('no-aura', !settings.get('aura'));
+}
+settings.on((k) => { if (k === 'glass' || k === 'aura') applyLook(); });
+
 // ---------------------------------------------------------------- global haptics
 function wireGlobalHaptics() {
   const PRIMARY = '.orb.center, .wc.main, .round.light, .cta, .chip, .sheet-btn, .sw, .pill';
@@ -205,6 +232,7 @@ function buildRinger() {
 async function boot() {
   try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
   document.documentElement.classList.toggle('no-reflect', !settings.get('reflection'));
+  applyLook();
   buildChrome();
   await activities.load();
   await tracker.recover();

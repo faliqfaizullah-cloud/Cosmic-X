@@ -1,6 +1,6 @@
 {
   "name": "cosmic-x",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "description": "Cosmic X - frosted-glass walking tracker with Cover Flow",
@@ -9,7 +9,7 @@
     "android:assets": "node scripts/apply-android-assets.mjs",
     "sync": "cap sync android",
     "apk:debug": "cd android && ./gradlew assembleDebug",
-    "test": "node test/scroller.test.mjs && node test/astro.test.mjs && node test/logic.test.mjs && node test/track.test.mjs && node test/tracker.test.mjs && node test/widget.test.mjs && node test/smoke.test.mjs"
+    "test": "node test/scroller.test.mjs && node test/astro.test.mjs && node test/logic.test.mjs && node test/track.test.mjs && node test/tracker.test.mjs && node test/widget.test.mjs && node test/motion.test.mjs && node test/smoke.test.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

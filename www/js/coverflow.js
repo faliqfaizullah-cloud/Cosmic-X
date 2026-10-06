@@ -2,6 +2,7 @@ import { icon } from './icons.js';
 import { clamp, listen } from './util.js';
 import { Scroller, bindDrag } from './scroller.js';
 import { haptic } from './haptics.js';
+import { motionBlur } from './ui-motion.js';
 import { routeCard } from './route-art.js';
 import { fmtKm, fmtDur, fmtPace, paceOf } from './track-math.js';
 import { openActivitySheet } from './activity-sheet.js';
@@ -46,7 +47,16 @@ export class CoverFlow {
     this.$ = (k) => root.querySelector(`[data-cf="${k}"]`);
     this.stage = this.$('stage');
     this.world = this.$('world');
-    this.sc = new Scroller({ min: 0, max: 0, onUpdate: (p) => this.render(p) });
+    const blur = motionBlur(this.world, 'x', 60);
+    let lastPos = 0;
+    this.sc = new Scroller({
+      min: 0, max: 0,
+      onUpdate: (p) => {
+        this.render(p);
+        blur(Math.max(Math.abs(this.sc.vel), Math.abs(p - lastPos))); // flicks smear horizontally, still frames are sharp
+        lastPos = p;
+      },
+    });
     bindDrag(this.stage, this.sc, { axis: 'x', pxPerUnit: 60, onTap: (e) => this.#tap(e) });
 
     root.addEventListener('click', (e) => {

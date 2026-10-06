@@ -1,4 +1,4 @@
-# Cosmic X  (v1.3)
+# Cosmic X  (v1.4)
 
 A frosted-glass **walking tracker** for Android (similar to Strava), plus the original Cosmic X screens.
 
@@ -10,6 +10,14 @@ A frosted-glass **walking tracker** for Android (similar to Strava), plus the or
 - **Smart GPS filtering** — drops weak fixes and GPS jumps, ignores standing-still jitter, excludes pauses from time and distance.
 - **Haptics** — a buzz at every kilometre, plus taps and detents throughout (Settings → Haptics).
 - **Landscape** — rotate for an **iOS 4 Cover Flow of your walks** (frosted route cards, reflections, sprinkles) with Start / Pause / Finish controls.
+
+## Glass UI (v1.4)
+- **Frosted glass system** — floating glass dock and header button, glass sheets / toast / menus, frosted list rows and cards with hairline edges, inner highlights and fine grain, and tinted-glass weather/metric tiles.
+- **Ambient aura** — soft colour blobs drift behind the glass and change colour per screen, so the blur always has something beautiful to frost.
+- **Fluid motion** — screens blur-slide out and in (direction follows the navigation), lists rise in one by one, the title swaps with a blur, buttons press with a spring.
+- **Motion blur** — Cover Flow and the Data cards get a directional blur proportional to flick speed; still frames are sharp.
+- **Settings → Glass & motion** — *Glass effects* Full/Lite (Lite drops the live blur for slower phones), *Ambient glow*, *Motion blur*. Reduced-motion phones skip the animations.
+- The home-screen widget stays solid dark/white.
 
 ## Full screen, home-screen widget, bold italic
 - **Full screen** — immersive edge-to-edge: status and navigation bars are hidden (swipe from an edge to peek at them), and the app draws behind the camera cut-out.
@@ -34,7 +42,7 @@ GitHub Actions builds the app and attaches `CosmicX-1.2.0-debug.apk` to a Releas
 Concentric blue circles with a white arrow on a light grid. Adaptive icon (with Android 13 themed/monochrome version) plus legacy round/square icons. Regenerate with `python3 scripts/make-icons.py` (needs `pip install pillow`).
 
 ## Tests
-`npm test` runs ~70 checks (incl. the widget data pipeline): tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
+`npm test` runs ~80 checks (incl. the widget data pipeline): tracker maths and a simulated-GPS walk (pauses, glitches, crash recovery), moon astronomy, alarms, prompt intents, the scroll physics, and a smoke test that mounts every screen.
 
 ## Notes
 - The widget and full-screen code are native Java in `resources/android/java/`; `scripts/apply-android-assets.mjs` installs them (and registers the widget in the manifest) after `npx cap add android`. The widget preview image is made by `scripts/make-widget-preview.py`.

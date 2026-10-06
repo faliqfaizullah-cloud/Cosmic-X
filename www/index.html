@@ -9,7 +9,14 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+  <!-- shared directional motion-blur filters (strength is set from JS while things move) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="mbx" x="-10%" y="-5%" width="120%" height="110%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="0 0"/></filter>
+    <filter id="mby" x="-5%" y="-10%" width="110%" height="120%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="0 0"/></filter>
+  </svg>
+
   <div id="app">
+    <div id="aura" aria-hidden="true"><i></i><i></i><i></i></div>
     <canvas id="sprinkles"></canvas>
 
     <!-- Portrait: the Cosmic X UI -->

@@ -30,6 +30,13 @@ export function mount(el, app) {
         <div class="row"><div><span>Solid dark or solid white. “Auto” follows your phone’s light/dark theme. Long-press the home screen → Widgets → Cosmic X.</span></div></div>
       </div>
       <div class="set-card">
+        <div class="set-h">Glass &amp; motion</div>
+        ${seg('glass', 'Glass effects', [['full', 'Full'], ['lite', 'Lite']])}
+        ${toggle('aura', 'Ambient glow', 'Soft colour behind the frosted glass, changes per screen')}
+        ${toggle('motionBlur', 'Motion blur', 'Directional blur while flicking Cover Flow and the Data cards')}
+        <div class="row"><div><span>Choose “Lite” if scrolling feels slow: it turns off the live background blur but keeps the frosted look.</span></div></div>
+      </div>
+      <div class="set-card">
         <div class="set-h">Haptics</div>
         ${toggle('haptics', 'Haptic feedback', 'Taps, detents in Cover Flow and dials, a buzz every kilometre, alarm pulses')}
         ${seg('hapticStrength', 'Strength', [['soft', 'Soft'], ['normal', 'Normal'], ['strong', 'Strong']])}

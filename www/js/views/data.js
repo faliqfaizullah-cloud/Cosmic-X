@@ -5,6 +5,7 @@ import { alarms, fmtIn } from '../alarms.js';
 import { fmtKm, fmtDur } from '../track-math.js';
 import { Scroller, bindDrag } from '../scroller.js';
 import { haptic } from '../haptics.js';
+import { motionBlur } from '../ui-motion.js';
 import { esc } from '../util.js';
 
 const STEP = 66;
@@ -40,10 +41,14 @@ export function mount(el, app) {
   const deck = el.querySelector('[data-deck]');
   const nodes = [...deck.children];
   let lastIdx = 0;
+  let lastPos = 0;
+  const blur = motionBlur(deck, 'y', 66);
 
   const sc = new Scroller({
     min: 0, max: cards.length - 1,
     onUpdate: (f) => {
+      blur(Math.max(Math.abs(sc.vel), Math.abs(f - lastPos)));
+      lastPos = f;
       const idx = Math.round(f);
       if (idx !== lastIdx) { lastIdx = idx; if (sc.dragging || Math.abs(sc.vel) > 0.002) haptic.tick(); }
       nodes.forEach((n, i) => {

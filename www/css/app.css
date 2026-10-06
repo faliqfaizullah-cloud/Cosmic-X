@@ -669,3 +669,139 @@ h1, h2, h3, p { margin: 0; }
    v1.3 — every piece of text is bold italic
    ========================================================================== */
 html, body, html *, html *::before, html *::after { font-style: italic !important; font-weight: 700 !important; }
+
+/* ==========================================================================
+   v1.4 — Glass system: frosted surfaces, aura backdrop, fluid motion
+   Rule of thumb: backdrop-filter only on chrome (dock, sheets, toast, tiles on screen ≤ ~8);
+   long lists use the cheap translucent "frost-lite" fill so scrolling stays smooth.
+   ========================================================================== */
+@property --a1 { syntax: '<color>'; inherits: true; initial-value: #7c4dff; }
+@property --a2 { syntax: '<color>'; inherits: true; initial-value: #ff8a4a; }
+@property --a3 { syntax: '<color>'; inherits: true; initial-value: #2de2e6; }
+
+:root {
+  --grain: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
+  --g-fill: linear-gradient(160deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
+  --g-edge: rgba(255, 255, 255, 0.13);
+  --g-hi: rgba(255, 255, 255, 0.26);
+  --g-blur: blur(22px) saturate(1.5);
+  --g-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.65);
+  --spring: cubic-bezier(0.22, 1.25, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.5, 0, 1, 0.6);
+}
+
+/* ---- layering: aura < dot grid < portrait UI ---- */
+#app::before { z-index: 1; }
+#sprinkles { z-index: 1; }
+#portrait { z-index: 2; }
+
+/* ---- aura: slow soft colour blobs the glass can blur (colour changes per screen) ---- */
+#aura { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; transition: --a1 1.1s ease, --a2 1.1s ease, --a3 1.1s ease; }
+#aura i { position: absolute; display: block; width: 90vmax; height: 90vmax; border-radius: 50%; opacity: 0.36; will-change: transform; animation: auraDrift 26s ease-in-out infinite alternate; }
+#aura i:nth-child(1) { left: -42vmax; top: -48vmax; background: radial-gradient(closest-side, var(--a1), transparent 72%); }
+#aura i:nth-child(2) { right: -50vmax; top: 6vh; background: radial-gradient(closest-side, var(--a2), transparent 72%); animation-duration: 33s; animation-delay: -9s; }
+#aura i:nth-child(3) { left: -24vmax; bottom: -58vmax; background: radial-gradient(closest-side, var(--a3), transparent 72%); animation-duration: 39s; animation-delay: -15s; }
+@keyframes auraDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); } }
+[data-mode='landscape'] #aura { display: none; }
+
+/* ---- header ---- */
+#titleBtn { width: 36px; height: 36px; margin-right: 0; border-radius: 50%; opacity: 1; background: var(--g-fill); border: 1px solid var(--g-edge); -webkit-backdrop-filter: var(--g-blur); backdrop-filter: var(--g-blur); box-shadow: inset 0 1px 0 var(--g-hi); }
+#title.swap { animation: titleSwap 0.55s var(--ease-out) both; }
+@keyframes titleSwap { from { opacity: 0; transform: translate3d(0, 8px, 0); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+#switcher { background: rgba(26, 26, 32, 0.6); -webkit-backdrop-filter: blur(30px) saturate(1.7); backdrop-filter: blur(30px) saturate(1.7); border: 1px solid var(--g-edge); box-shadow: inset 0 1px 0 var(--g-hi), 0 30px 70px -20px rgba(0, 0, 0, 0.8); border-radius: 24px; }
+#switcher button { border-radius: 16px; transition: background 0.25s, transform 0.4s var(--spring); }
+#switcher button:active { transform: scale(0.97); }
+
+/* ---- floating glass dock ---- */
+#dock { position: relative; height: 62px; padding: 6px; border-radius: 31px; background: var(--g-fill); border: 1px solid var(--g-edge); -webkit-backdrop-filter: var(--g-blur); backdrop-filter: var(--g-blur); box-shadow: inset 0 1px 0 var(--g-hi), var(--g-shadow); isolation: isolate; }
+#dock::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background-image: var(--grain); background-size: 180px; opacity: 0.3; mix-blend-mode: soft-light; pointer-events: none; }
+.round { width: 46px; height: 46px; transition: transform 0.45s var(--spring), background 0.3s, box-shadow 0.3s; }
+.round.dark { background: rgba(255, 255, 255, 0.09); }
+.round.light { box-shadow: 0 6px 18px -6px rgba(255, 255, 255, 0.4); }
+.round:active { transform: scale(0.86); }
+.pill { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--g-edge); height: 36px; transition: transform 0.45s var(--spring), background 0.3s; }
+.pill:active { transform: scale(0.92); }
+
+/* ---- screen transitions: blur + slide + spring ---- */
+.view { animation: none; }
+.view.enter { animation: viewEnter 0.62s var(--ease-out) backwards; }
+.view.leaving { pointer-events: none; z-index: 0; animation: viewLeave 0.28s var(--ease-in) both; }
+@keyframes viewEnter { from { opacity: 0; transform: translate3d(var(--dx, 0), 10px, 0) scale(0.975); filter: blur(14px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes viewLeave { from { opacity: 1; transform: none; filter: blur(0); } to { opacity: 0; transform: translate3d(var(--dx, 0), 0, 0) scale(0.97); filter: blur(12px); } }
+
+/* list / tile items rise in one after another (only on arrival: `.fresh` is removed after ~1s) */
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > * { animation: rise 0.75s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 55ms + 120ms); }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(2) { --i: 1; }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(3) { --i: 2; }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(4) { --i: 3; }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(5) { --i: 4; }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(6) { --i: 5; }
+.view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > :nth-child(n + 7) { --i: 6; }
+@keyframes rise { from { opacity: 0; transform: translate3d(0, 22px, 0) scale(0.97); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.wt { animation: none; }
+
+/* ---- frost-lite surfaces: translucent glass fill + hairline + inner highlight + grain (no backdrop blur) ---- */
+:is(.hrow, .al-row, .set-card, .hist-top div, .act-grid div) { position: relative; isolation: isolate; background: var(--g-fill); border: 1px solid var(--g-edge); box-shadow: inset 0 1px 0 var(--g-hi), 0 10px 26px -16px rgba(0, 0, 0, 0.7); }
+:is(.hrow, .al-row, .set-card, .hist-top div, .act-grid div)::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background-image: var(--grain); background-size: 180px; opacity: 0.26; mix-blend-mode: soft-light; pointer-events: none; }
+.hrow, .al-row { transition: transform 0.45s var(--spring), opacity 0.3s; }
+.hrow:active, .al-row:active { transform: scale(0.975); }
+.seg { background: rgba(255, 255, 255, 0.07); border: 1px solid var(--g-edge); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 var(--g-hi); }
+.seg button { transition: background 0.3s, color 0.3s, transform 0.4s var(--spring); }
+.step button { border: 1px solid var(--g-edge); }
+
+/* ---- colour tiles become tinted glass (translucent gradients over the aura, sheen, hairline) ---- */
+.wt { isolation: isolate; border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 16px 32px -18px rgba(0, 0, 0, 0.75); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); }
+.wt::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 42%); pointer-events: none; }
+.w-weather { background: linear-gradient(170deg, rgba(255, 77, 94, 0.74), rgba(140, 18, 48, 0.58) 70%, rgba(58, 7, 22, 0.5)); }
+.w-uv { background: linear-gradient(160deg, rgba(255, 180, 58, 0.72), rgba(194, 86, 26, 0.55) 75%); }
+.w-hum { background: linear-gradient(160deg, rgba(110, 224, 106, 0.7), rgba(14, 122, 76, 0.52) 80%); }
+.w-wind { background: linear-gradient(160deg, rgba(56, 189, 248, 0.7), rgba(29, 78, 216, 0.52) 85%); }
+.w-press { background: linear-gradient(160deg, rgba(167, 139, 250, 0.7), rgba(76, 29, 149, 0.52) 85%); }
+.w-cloud { background: linear-gradient(160deg, rgba(148, 163, 184, 0.62), rgba(30, 41, 59, 0.5) 85%); }
+.w-hourly { background: linear-gradient(160deg, rgba(20, 184, 166, 0.7), rgba(11, 61, 92, 0.52) 85%); }
+.m-listen { background: linear-gradient(160deg, rgba(255, 122, 69, 0.72), rgba(156, 42, 20, 0.55) 85%); }
+.m-batt { background: linear-gradient(160deg, rgba(74, 222, 128, 0.68), rgba(20, 83, 45, 0.5) 85%); }
+.m-lib { background: linear-gradient(160deg, rgba(167, 139, 250, 0.68), rgba(59, 29, 156, 0.5) 85%); }
+.m-store { background: linear-gradient(160deg, rgba(56, 189, 248, 0.68), rgba(30, 58, 138, 0.5) 85%); }
+.m-week { background: linear-gradient(160deg, rgba(48, 60, 80, 0.62), rgba(11, 18, 32, 0.55)); }
+
+/* ---- hero cards get the same glass edge ---- */
+.moon-card, .al-card, .srch { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 30px 60px -30px rgba(0, 0, 0, 0.8); }
+
+/* ---- map overlays: dark frosted glass ---- */
+.map-card.glass { background: linear-gradient(160deg, rgba(34, 34, 42, 0.62), rgba(18, 18, 24, 0.5)); border: 1px solid var(--g-edge); -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6); box-shadow: inset 0 1px 0 var(--g-hi), 0 20px 40px -16px rgba(0, 0, 0, 0.8); }
+.map-ctl button { background: rgba(28, 28, 34, 0.55); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); box-shadow: inset 0 1px 0 var(--g-hi); transition: transform 0.45s var(--spring), background 0.3s; }
+.map-ctl button:active { transform: scale(0.88); }
+
+/* ---- sheets, toast, ringer ---- */
+.sheet-wrap { background: rgba(0, 0, 0, 0.38); animation: fade 0.3s both; }   /* no backdrop-filter here: it would stop the sheet's own blur */
+.sheet { background: rgba(28, 28, 34, 0.62); -webkit-backdrop-filter: blur(30px) saturate(1.7); backdrop-filter: blur(30px) saturate(1.7); border: 1px solid var(--g-edge); box-shadow: inset 0 1px 0 var(--g-hi), 0 34px 80px -24px rgba(0, 0, 0, 0.85); animation: sheetUp 0.6s var(--ease-out) backwards; }
+@keyframes sheetUp { from { opacity: 0; transform: translate3d(0, 40px, 0) scale(0.96); filter: blur(10px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.sheet-btn { transition: transform 0.45s var(--spring), background 0.3s; }
+.sheet-btn:active { transform: scale(0.95); }
+#toast { background: rgba(30, 30, 38, 0.6); -webkit-backdrop-filter: blur(26px) saturate(1.7); backdrop-filter: blur(26px) saturate(1.7); border: 1px solid var(--g-edge); box-shadow: inset 0 1px 0 var(--g-hi), 0 16px 40px -16px rgba(0, 0, 0, 0.8); transition: opacity 0.35s, transform 0.55s var(--spring); transform: translate(-50%, 24px) scale(0.96); }
+#toast.show { transform: translate(-50%, 0) scale(1); }
+.ring-btn { transition: transform 0.45s var(--spring); } .ring-btn:active { transform: scale(0.95); }
+
+/* ---- small springs ---- */
+.sw { transition: background 0.3s; }
+.sw i { transition: transform 0.5s var(--spring), background 0.3s; }
+.chip, .cta, .wc { transition: transform 0.45s var(--spring), background 0.3s, opacity 0.3s; }
+.chip:active, .cta:active { transform: scale(0.94); }
+.menu-hint { transition: opacity 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  #aura i, .view.enter, .view.leaving, #title.swap, .sheet { animation: none !important; }
+  .view.fresh :is(.hist-list, .al-list, .wgrid, .set, .act-grid) > * { animation: none !important; }
+}
+
+/* ---- Settings -> Glass & motion ---- */
+html.no-aura #aura { display: none; }
+html.lite-glass {
+  --g-fill: linear-gradient(160deg, rgba(52, 52, 62, 0.9), rgba(30, 30, 38, 0.92));
+  --g-blur: none;
+}
+html.lite-glass * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite-glass #switcher, html.lite-glass .sheet, html.lite-glass #toast, html.lite-glass .map-card.glass { background: rgba(30, 30, 38, 0.95); }
+html.lite-glass #aura i { animation: none; }

@@ -8,6 +8,9 @@ const defaults = {
   repeat: 'off', // off | all | one
   weight: 70, // kg, for calorie estimates
   widgetTheme: 'auto', // home-screen widget: auto (follows the phone) | dark | light
+  glass: 'full', // full | lite (lite = no backdrop blur, for slower phones)
+  aura: true, // ambient colour glow behind the glass
+  motionBlur: true, // directional blur while flicking Cover Flow / decks
   haptics: true,
   hapticStrength: 'normal', // soft | normal | strong
   lat: null,
